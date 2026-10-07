@@ -106,7 +106,7 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --font-sans: var(--font-poppins);
-  --font-display: var(--font-oswald);
+  --font-display: var(--font-escapulada);
 }
 
 body {
@@ -118,10 +118,10 @@ body {
 
 /* Titulars a l'estil de la web del club: estrets, en majúscules i blaus */
 .display {
-  font-family: var(--font-oswald), "Arial Narrow", sans-serif;
+  font-family: var(--font-escapulada), "Arial Narrow", sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Camps de formulari: mida gran per a ús amb el dit a peu de camp */

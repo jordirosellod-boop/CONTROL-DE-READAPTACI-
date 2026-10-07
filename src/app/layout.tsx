@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Oswald, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-// Tipografies com la web del club: titulars estrets en majúscules + Poppins per al text.
-const display = Oswald({
-  variable: "--font-oswald",
-  subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700"],
+// Tipografies de la web del club: Escapulada (titulars) + Poppins (text).
+const display = localFont({
+  src: "./fonts/Escapulada.ttf",
+  variable: "--font-escapulada",
+  weight: "700",
+  display: "swap",
+  fallback: ["Arial Narrow", "sans-serif"],
+  // L'Escapulada es veu petita al mateix cos que altres lletres: l'engrandim una mica
+  declarations: [{ prop: "size-adjust", value: "115%" }],
 });
 
 const sans = Poppins({
