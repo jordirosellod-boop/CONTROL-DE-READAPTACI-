@@ -15,14 +15,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "Control de Readaptació", template: "%s · Readaptació" },
   description: "Seguiment de jugadors lesionats: wellness, sessions, treball de camp i tests físics.",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "Readaptació", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f3" },
-    { media: "(prefers-color-scheme: dark)", color: "#121211" },
+    { media: "(prefers-color-scheme: light)", color: "#022e91" },
+    { media: "(prefers-color-scheme: dark)", color: "#022e91" },
   ],
 };
 
