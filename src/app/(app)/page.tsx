@@ -52,7 +52,8 @@ export default async function Dashboard() {
         </Empty>
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-3 gap-3">
+          {/* Franja fosca tipus "marcador", com la de resultats de la web del club */}
+          <div className="mb-6 grid grid-cols-3 divide-x divide-white/25 rounded-2xl bg-navy px-2 py-4 text-center text-white">
             <SummaryTile label="En readaptació" value={lesionats.length} />
             <SummaryTile label="Sense wellness avui" value={senseWellness.length} tone={senseWellness.length ? "warn" : undefined} />
             <SummaryTile label="Alertes" value={alertes.length} tone={alertes.length ? "danger" : undefined} />
@@ -66,7 +67,7 @@ export default async function Dashboard() {
                 <Card key={r.player.id} className="flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <Link href={`/jugadors/${r.player.id}`} className="block truncate text-lg font-semibold hover:underline">
+                      <Link href={`/jugadors/${r.player.id}`} className="display block truncate text-2xl leading-tight text-heading hover:underline">
                         {r.player.nom} {r.player.cognoms}
                       </Link>
                       <div className="truncate text-sm text-muted">
@@ -127,7 +128,7 @@ export default async function Dashboard() {
           )}
 
           {altres.length > 0 && (
-            <Card title="Altres jugadors (sense lesió activa)" className="mt-6">
+            <Card title="Altres jugadors · disponibles" className="mt-6">
               <ul className="flex flex-wrap gap-2">
                 {altres.map((r) => (
                   <li key={r.player.id}>
@@ -147,11 +148,12 @@ export default async function Dashboard() {
 }
 
 function SummaryTile({ label, value, tone }: { label: string; value: number; tone?: "warn" | "danger" }) {
-  const toneClass = tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : "";
+  // Sobre fons fosc: groc / vermell clars per a contrast
+  const toneClass = tone === "danger" ? "text-[#ff8a80]" : tone === "warn" ? "text-[#ffd166]" : "";
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3 sm:p-4">
-      <div className={`text-2xl font-semibold tabular-nums sm:text-3xl ${toneClass}`}>{value}</div>
-      <div className="text-xs text-muted sm:text-sm">{label}</div>
+    <div className="px-2">
+      <div className={`display text-4xl tabular-nums sm:text-5xl ${toneClass}`}>{value}</div>
+      <div className="display mt-1 text-xs text-white/80 sm:text-sm">{label}</div>
     </div>
   );
 }
@@ -160,7 +162,7 @@ function Metric({ label, value, sub }: { label: string; value: React.ReactNode; 
   return (
     <div className="rounded-xl bg-surface-2 px-2 py-2">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className="text-lg font-semibold tabular-nums">{value ?? "—"}</dd>
+      <dd className="display text-2xl text-heading tabular-nums">{value ?? "—"}</dd>
       <dd className="text-xs text-muted">{sub}</dd>
     </div>
   );

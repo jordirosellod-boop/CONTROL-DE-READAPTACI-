@@ -16,7 +16,7 @@ export function PageHeader({ title, subtitle, back, actions }: { title: ReactNod
       )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="display text-3xl leading-tight text-heading sm:text-4xl">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -27,10 +27,10 @@ export function PageHeader({ title, subtitle, back, actions }: { title: ReactNod
 
 export function Card({ title, actions, children, className }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cx("rounded-2xl border border-border bg-surface p-4 sm:p-5", className)}>
+    <section className={cx("min-w-0 rounded-2xl border border-border bg-surface p-4 shadow-[0_1px_2px_rgba(11,27,77,0.06)] sm:p-5", className)}>
       {(title || actions) && (
         <div className="mb-3 flex items-center justify-between gap-2">
-          {title && <h2 className="text-base font-semibold">{title}</h2>}
+          {title && <h2 className="display text-lg text-heading">{title}</h2>}
           {actions}
         </div>
       )}
@@ -41,17 +41,18 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
 
 const buttonStyles = {
   primary: "bg-accent text-accent-fg hover:opacity-90",
-  secondary: "border border-border bg-surface hover:bg-surface-2",
-  danger: "border border-danger/40 text-danger hover:bg-danger-soft",
-  ghost: "text-muted hover:text-foreground hover:bg-surface-2",
+  secondary: "border-2 border-accent text-accent bg-surface hover:bg-accent-soft",
+  danger: "border-2 border-danger/50 text-danger hover:bg-danger-soft",
+  ghost: "text-accent hover:bg-accent-soft",
 };
 
 export type ButtonVariant = keyof typeof buttonStyles;
 
 export function buttonClass(variant: ButtonVariant = "primary", size: "md" | "sm" = "md") {
   return cx(
-    "inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition disabled:opacity-50",
-    size === "md" ? "min-h-11 px-4 text-sm" : "min-h-9 px-3 text-sm",
+    // Botons "píndola" en majúscules, com a la web del club
+    "display inline-flex items-center justify-center gap-1.5 rounded-full transition disabled:opacity-50",
+    size === "md" ? "min-h-11 px-5 text-[15px]" : "min-h-9 px-4 text-sm",
     buttonStyles[variant],
   );
 }
@@ -128,7 +129,7 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
   return (
     <div className="rounded-xl bg-surface-2 p-3">
       <div className="text-xs text-muted">{label}</div>
-      <div className="mt-0.5 text-xl font-semibold tabular-nums">{value}</div>
+      <div className="display mt-0.5 text-2xl text-heading tabular-nums">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-muted">{sub}</div>}
     </div>
   );

@@ -53,13 +53,13 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
       />
 
       <nav className="-mx-4 mb-5 overflow-x-auto px-4" aria-label="Seccions">
-        <div className="flex w-max gap-1 rounded-xl bg-surface-2 p-1">
+        <div className="flex w-max gap-1 rounded-full border-2 border-accent/20 p-1">
           {TABS.map((t) => (
             <Link
               key={t.key}
               href={`/jugadors/${id}?tab=${t.key}`}
               aria-current={tab === t.key ? "page" : undefined}
-              className={cx("rounded-lg px-4 py-2 text-sm font-medium", tab === t.key ? "bg-surface shadow-sm" : "text-muted hover:text-foreground")}
+              className={cx("display rounded-full px-4 py-2 text-[15px]", tab === t.key ? "bg-accent text-accent-fg" : "text-accent hover:bg-accent-soft")}
             >
               {t.label}
             </Link>
@@ -92,7 +92,7 @@ function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerI
         <Card title="Lesió activa" actions={injury && <LinkButton href={`/jugadors/${playerId}/lesions/${injury.id}`} variant="ghost" size="sm">Editar</LinkButton>}>
           {injury ? (
             <>
-              <p className="text-lg font-semibold">{injury.diagnostic}</p>
+              <p className="display text-2xl text-heading">{injury.diagnostic}</p>
               <p className="text-sm text-muted">
                 {[labelOf(CATEGORIES_LESIO, injury.categoria), injury.zona, injury.costat && `Costat ${labelOf(COSTATS_LESIO, injury.costat).toLowerCase()}`].filter((x) => x && x !== "—").join(" · ")}
               </p>
@@ -146,7 +146,7 @@ function WellnessDetail({ w }: { w: WellnessEntry }) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
-        <span className="text-3xl font-semibold tabular-nums">{wellnessScore(w)}</span>
+        <span className="display text-4xl text-heading tabular-nums">{wellnessScore(w)}</span>
         <span className="text-sm text-muted">/ 25</span>
         <SemaforBadge status={wellnessStatus(w)} />
       </div>

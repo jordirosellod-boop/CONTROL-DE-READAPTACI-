@@ -2,17 +2,19 @@
 
 :root {
   color-scheme: light;
-  --background: #f3f5fa;
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-2: #eef1f8;
-  --border: #dde2ee;
-  --foreground: #0f1630;
-  --muted: #525a72;
-  --accent: #022e91;
+  --surface-2: #eef0f5;
+  --border: #d9deea;
+  --foreground: #0b1b4d;
+  --muted: #4f5a7d;
+  --accent: #0a2ea0;
   --accent-fg: #ffffff;
-  --accent-soft: #e5ebf8;
-  --brand: #022e91;
+  --accent-soft: #e6ebf9;
+  --heading: #0a2ea0;
+  --brand: #0a2ea0;
   --brand-fg: #ffffff;
+  --navy: #0b1b4d;
   --danger: #b42318;
   --danger-soft: #fdecea;
   --ok: #157f3c;
@@ -39,8 +41,10 @@
     --accent: #8aa6ff;
     --accent-fg: #061237;
     --accent-soft: #1c2b57;
-    --brand: #022e91;
+    --heading: #c9d6ff;
+    --brand: #0a2ea0;
     --brand-fg: #ffffff;
+    --navy: #070f2b;
     --danger: #f97066;
     --danger-soft: #3a1714;
     --ok: #4ade80;
@@ -65,8 +69,10 @@
   --accent: #8aa6ff;
   --accent-fg: #061237;
   --accent-soft: #1c2b57;
-  --brand: #022e91;
+  --heading: #c9d6ff;
+  --brand: #0a2ea0;
   --brand-fg: #ffffff;
+  --navy: #070f2b;
   --danger: #f97066;
   --danger-soft: #3a1714;
   --ok: #4ade80;
@@ -91,14 +97,16 @@
   --color-accent-soft: var(--accent-soft);
   --color-brand: var(--brand);
   --color-brand-fg: var(--brand-fg);
+  --color-heading: var(--heading);
+  --color-navy: var(--navy);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-poppins);
+  --font-display: var(--font-oswald);
 }
 
 body {
@@ -106,6 +114,14 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Titulars a l'estil de la web del club: estrets, en majúscules i blaus */
+.display {
+  font-family: var(--font-oswald), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 /* Camps de formulari: mida gran per a ús amb el dit a peu de camp */
