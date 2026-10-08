@@ -287,3 +287,106 @@ export function videoEmbedUrl(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Fatiga acumulada (ACWR, monotonia i strain de Foster, tendència del wellness)
+// ---------------------------------------------------------------------------
+
+/** sRPE de cada dia (sessions completades), per als `days` dies que acaben a `to`. */
+export function dailyLoads(sessions: LoadInput[], to: string, days: number): { data: string; srpe: number }[] {
+  const byDay = new Map<string, number>();
+  for (const s of sessions) if (s.completada) byDay.set(s.data, (byDay.get(s.data) ?? 0) + sessionLoad(s));
+  return Array.from({ length: days }, (_, i) => {
+    const data = addDays(to, i - days + 1);
+    return { data, srpe: byDay.get(data) ?? 0 };
+  });
+}
+
+export type ZonaAcwr = "baixa" | "optima" | "precaucio" | "risc" | "sense";
+
+/** Zones habituals de l'ACWR (Gabbett): <0,8 baixa · 0,8–1,3 òptima · 1,3–1,5 precaució · >1,5 risc. */
+export function acwrZone(acwr: number | null): ZonaAcwr {
+  if (acwr == null) return "sense";
+  if (acwr < 0.8) return "baixa";
+  if (acwr <= 1.3) return "optima";
+  if (acwr <= 1.5) return "precaucio";
+  return "risc";
+}
+
+export interface FatigueMetrics {
+  aguda: number; // sRPE dels darrers 7 dies
+  cronica: number; // mitjana setmanal dels darrers 28 dies
+  acwr: number | null;
+  zona: ZonaAcwr;
+  monotonia: number | null; // mitjana diària / desviació estàndard (7 dies)
+  strain: number | null; // càrrega setmanal × monotonia
+  fiable: boolean; // hi ha almenys 21 dies d'historial de càrrega
+}
+
+function mean(xs: number[]) {
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+}
+
+export function fatigueMetrics(sessions: LoadInput[], today: string): FatigueMetrics {
+  const days28 = dailyLoads(sessions, today, 28).map((d) => d.srpe);
+  const days7 = days28.slice(-7);
+  const aguda = days7.reduce((a, b) => a + b, 0);
+  const cronica = days28.reduce((a, b) => a + b, 0) / 4;
+  const acwr = cronica > 0 ? aguda / cronica : null;
+  const m = mean(days7);
+  const sd = Math.sqrt(mean(days7.map((x) => (x - m) ** 2)));
+  const monotonia = m > 0 && sd > 0 ? m / sd : null;
+  const completades = sessions.filter((s) => s.completada).map((s) => s.data).sort();
+  const fiable = completades.length > 0 && daysBetween(completades[0], today) >= 21;
+  return { aguda, cronica, acwr, zona: acwrZone(acwr), monotonia, strain: monotonia == null ? null : aguda * monotonia, fiable };
+}
+
+/** Sèrie diària per al gràfic: càrrega del dia, mitjanes mòbils aguda (7 d) i crònica (28 d) i ACWR. */
+export function fatigueSeries(sessions: LoadInput[], today: string, days = 42) {
+  const all = dailyLoads(sessions, today, days + 27).map((d) => d.srpe);
+  const dates = dailyLoads([], today, days).map((d) => d.data);
+  return dates.map((data, i) => {
+    const end = i + 27; // índex del dia dins `all`
+    const sum7 = all.slice(end - 6, end + 1).reduce((a, b) => a + b, 0);
+    const sum28 = all.slice(end - 27, end + 1).reduce((a, b) => a + b, 0);
+    return {
+      data,
+      srpe: all[end],
+      aguda: Math.round((sum7 / 7) * 10) / 10,
+      cronica: Math.round((sum28 / 28) * 10) / 10,
+      acwr: sum28 > 0 ? Math.round((sum7 / (sum28 / 4)) * 100) / 100 : null,
+    };
+  });
+}
+
+export interface WellnessTrendItem {
+  clau: "puntuacio" | "fatiga" | "son_hores" | "dolor_eva";
+  dies7: number | null;
+  dies28: number | null;
+  canvi: number | null; // % (positiu = millor, ja té en compte que més dolor és pitjor)
+}
+
+/** Mitjana dels darrers 7 dies vs mitjana de referència dels 28 dies. */
+type WellnessDay = WellnessScores & { data: string; son_hores?: number | null };
+
+export function wellnessTrend(entries: WellnessDay[], today: string): WellnessTrendItem[] {
+  const in7 = entries.filter((e) => e.data > addDays(today, -7) && e.data <= today);
+  const in28 = entries.filter((e) => e.data > addDays(today, -28) && e.data <= today);
+  const item = (clau: WellnessTrendItem["clau"], get: (e: WellnessDay) => number | null | undefined, menysEsMillor = false): WellnessTrendItem => {
+    const v7 = in7.map(get).filter((v): v is number => v != null).map(Number);
+    const v28 = in28.map(get).filter((v): v is number => v != null).map(Number);
+    const dies7 = v7.length ? mean(v7) : null;
+    const dies28 = v28.length ? mean(v28) : null;
+    let canvi = dies7 != null && dies28 != null ? pctChange(dies7, dies28) : null;
+    if (canvi != null && menysEsMillor) canvi = -canvi;
+    // Amb dolor de referència 0, qualsevol dolor nou és un empitjorament clar
+    if (menysEsMillor && dies28 === 0 && dies7 != null && dies7 > 0) canvi = -100;
+    return { clau, dies7, dies28, canvi };
+  };
+  return [
+    item("puntuacio", (e) => wellnessScore(e)),
+    item("fatiga", (e) => e.fatiga),
+    item("son_hores", (e) => e.son_hores),
+    item("dolor_eva", (e) => e.dolor_eva, true),
+  ];
+}

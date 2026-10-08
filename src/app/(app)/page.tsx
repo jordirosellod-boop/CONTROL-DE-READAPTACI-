@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
+import { addDays, fatigueMetrics, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { POSICIONS, labelOf } from "@/lib/constants";
 import { activeInjury, getDashboard } from "@/lib/data";
-import { Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
+import { AcwrBadge, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Panell" };
 
@@ -17,6 +17,7 @@ export default async function Dashboard() {
     const avui = pWellness.find((w) => w.data === today) ?? null;
     const pSessions = sessions.filter((s) => s.player_id === p.id && (!injury || s.data >= injury.data_lesio));
     const progress = loadProgression(weeklyLoads(pSessions), today);
+    const fatiga = fatigueMetrics(sessions.filter((s) => s.player_id === p.id), today);
     const testSummary = summarizeTests(tests.filter((t) => t.player_id === p.id && (!injury || t.data >= injury.data_lesio || t.es_baseline)));
     const lsis = testSummary.filter((t) => t.lsi != null);
     const pitjorLsi = lsis.length ? lsis.reduce((a, b) => (b.lsi! < a.lsi! ? b : a)) : null;
@@ -29,6 +30,7 @@ export default async function Dashboard() {
       status: wellnessStatus(avui),
       tendencia: pWellness.map((w) => ({ data: w.data, score: wellnessScore(w) })),
       progress,
+      fatiga,
       pitjorLsi,
     };
   });
@@ -36,7 +38,7 @@ export default async function Dashboard() {
   const lesionats = rows.filter((r) => r.injury);
   const altres = rows.filter((r) => !r.injury);
   const senseWellness = lesionats.filter((r) => !r.avui);
-  const alertes = lesionats.filter((r) => r.status === "vermell");
+  const alertes = lesionats.filter((r) => r.status === "vermell" || r.fatiga.zona === "risc");
 
   return (
     <>
@@ -92,6 +94,13 @@ export default async function Dashboard() {
                       <span className="text-muted">Càrrega setmana (sRPE)</span>
                       <span className="tabular-nums">
                         {Math.round(r.progress.srpe)} UA <span className="text-muted">({formatPct(r.progress.srpeCanvi)} vs anterior)</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Fatiga (ACWR)</span>
+                      <span className="flex items-center gap-1.5 tabular-nums">
+                        {r.fatiga.acwr == null ? "—" : r.fatiga.acwr.toFixed(2).replace(".", ",")}
+                        <AcwrBadge zona={r.fatiga.zona} />
                       </span>
                     </div>
                     <div className="flex justify-between gap-2">

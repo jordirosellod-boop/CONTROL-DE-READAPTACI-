@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
+import { FatigueCharts, LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
 import { ActionButton } from "@/components/forms";
-import { Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
+import { AcwrBadge, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
 import { deleteTest, deleteWellness } from "@/lib/actions";
-import { addDays, baselineOf, formatDate, formatPct, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
+import { addDays, baselineOf, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
 import { activeInjury, getPlayerBundle, type SessionWithField } from "@/lib/data";
 import type { Injury, PhysicalTest, Treatment, WellnessEntry } from "@/lib/types";
 
 const TABS = [
   { key: "resum", label: "Resum" },
+  { key: "fatiga", label: "Fatiga" },
   { key: "wellness", label: "Wellness" },
   { key: "sessions", label: "Sessions" },
   { key: "tractament", label: "Tractament" },
@@ -72,6 +73,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
       </nav>
 
       {tab === "resum" && <Resum playerId={id} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
+      {tab === "fatiga" && <FatigaTab sessions={sessions} wellness={wellness} today={today} />}
       {tab === "wellness" && <WellnessTab playerId={id} wellness={wellness} />}
       {tab === "sessions" && <SessionsTab playerId={id} sessions={sessions} today={today} />}
       {tab === "tractament" && <TractamentTab playerId={id} treatments={treatments} ready={treatmentsReady} injury={injury} />}
@@ -88,6 +90,7 @@ function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerI
   const week = injury ? treatmentWeek(injury, today) : null;
   const weeks = weeklyLoads(sessions);
   const progress = loadProgression(weeks, today);
+  const fatiga = fatigueMetrics(sessions, today);
   const summary = summarizeTests(tests);
   const last30 = wellness.filter((w) => w.data > addDays(today, -30)).slice().reverse();
 
@@ -128,6 +131,8 @@ function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerI
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="sRPE aquesta setmana" value={`${Math.round(progress.srpe)} UA`} sub={`${formatPct(progress.srpeCanvi)} vs anterior (${Math.round(progress.srpeAnterior)})`} />
           <Stat label="Distància aquesta setmana" value={`${(progress.distancia / 1000).toFixed(1)} km`} sub={`${formatPct(progress.distanciaCanvi)} vs anterior`} />
+          <Stat label="Fatiga (ACWR)" value={fatiga.acwr == null ? "—" : fatiga.acwr.toFixed(2).replace(".", ",")} sub={<AcwrBadge zona={fatiga.zona} />} />
+          <Stat label="Monotonia" value={fatiga.monotonia == null ? "—" : fatiga.monotonia.toFixed(2).replace(".", ",")} sub={<Link className="underline" href={`/jugadors/${playerId}?tab=fatiga`}>Veure fatiga</Link>} />
         </div>
         {weeks.length ? <LoadCharts weeks={weeks.slice(-12).map((w) => ({ setmana: w.setmana, srpe: w.srpe, distanciaKm: Math.round(w.distanciaM / 100) / 10 }))} /> : <Empty>Cap sessió completada.</Empty>}
       </Card>
@@ -438,6 +443,114 @@ function TractamentTab({ playerId, treatments, ready, injury }: { playerId: stri
             ))}
           </ul>
         )}
+      </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+const fmt1 = (v: number | null | undefined, d = 1) => (v == null ? "—" : v.toFixed(d).replace(".", ","));
+
+function FatigaTab({ sessions, wellness, today }: { sessions: SessionWithField[]; wellness: WellnessEntry[]; today: string }) {
+  const f = fatigueMetrics(sessions, today);
+  const serie = fatigueSeries(sessions, today, 42);
+  const trend = wellnessTrend(wellness, today);
+  const TREND_LABEL = { puntuacio: "Wellness total (5–25)", fatiga: "Fatiga (1–5, 5 = fresc)", son_hores: "Hores de son", dolor_eva: "Dolor EVA (0–10)" };
+
+  // Registre diari dels darrers 28 dies: càrrega + wellness
+  const loads = new Map(dailyLoads(sessions, today, 28).map((d) => [d.data, d.srpe]));
+  const rpeDia = new Map<string, string>();
+  for (const s of sessions) if (s.completada && s.rpe != null && s.data > addDays(today, -28)) rpeDia.set(s.data, [rpeDia.get(s.data), `${s.rpe}×${s.durada_min ?? "?"}′`].filter(Boolean).join(" + "));
+  const wDia = new Map(wellness.map((w) => [w.data, w]));
+  const dies = [...loads.keys()].filter((d) => (loads.get(d) ?? 0) > 0 || wDia.has(d)).reverse();
+
+  return (
+    <div className="space-y-4">
+      <Card title="Fatiga acumulada · càrrega interna (sRPE)">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <Stat label="ACWR" value={fmt1(f.acwr, 2)} sub={<AcwrBadge zona={f.zona} />} />
+          <Stat label="Aguda (7 dies)" value={`${Math.round(f.aguda)}`} sub="UA" />
+          <Stat label="Crònica (28 dies)" value={`${Math.round(f.cronica)}`} sub="UA / setmana" />
+          <Stat label="Monotonia" value={fmt1(f.monotonia, 2)} sub={f.monotonia != null && f.monotonia > 2 ? <Badge tone="warn">▲ Alta (&gt; 2)</Badge> : "mitjana / desv. diària"} />
+          <Stat label="Strain" value={f.strain == null ? "—" : Math.round(f.strain)} sub="aguda × monotonia" />
+        </div>
+        {!f.fiable && <p className="mt-3 rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn">Hi ha menys de 3 setmanes de sessions registrades: l&apos;ACWR encara és orientatiu.</p>}
+        <div className="mt-5">
+          <FatigueCharts data={serie} />
+        </div>
+      </Card>
+
+      <Card title="Wellness: darrers 7 dies vs referència de 28 dies">
+        <div className="-mx-4 overflow-x-auto px-4">
+          <table className="w-full min-w-[330px] text-sm">
+            <thead className="text-left text-xs text-muted">
+              <tr>
+                <th className="py-2 pr-2 font-medium">Indicador</th>
+                <th className="py-2 pr-2 text-right font-medium">7 dies</th>
+                <th className="py-2 pr-2 text-right font-medium">28 dies</th>
+                <th className="py-2 text-right font-medium">Tendència</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border tabular-nums">
+              {trend.map((t) => (
+                <tr key={t.clau}>
+                  <td className="py-2 pr-2">{TREND_LABEL[t.clau]}</td>
+                  <td className="py-2 pr-2 text-right font-medium">{fmt1(t.dies7)}</td>
+                  <td className="py-2 pr-2 text-right">{fmt1(t.dies28)}</td>
+                  <td className={cx("py-2 text-right font-medium", t.canvi != null && (t.canvi <= -10 ? "text-danger" : t.canvi < 0 ? "text-warn" : "text-ok"))}>
+                    {t.canvi == null ? "—" : `${t.canvi < 0 ? "▼ pitjor" : t.canvi > 0 ? "▲ millor" : "= igual"} ${t.canvi === 0 ? "" : `(${Math.abs(t.canvi).toFixed(0)}%)`}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-muted">Una baixada de més del 10% respecte a la referència (en vermell) indica fatiga acumulada o mala recuperació.</p>
+      </Card>
+
+      <Card title="Registre diari (28 dies)">
+        {dies.length === 0 ? (
+          <Empty>Encara no hi ha sessions completades ni wellness en aquest període.</Empty>
+        ) : (
+          <div className="-mx-4 overflow-x-auto px-4">
+            <table className="w-full min-w-[620px] text-sm">
+              <thead className="text-left text-xs text-muted">
+                <tr>
+                  {["Data", "RPE × min", "sRPE (UA)", "Wellness", "Fatiga", "Son", "Dolor", "Estat"].map((h) => (
+                    <th key={h} className="py-2 pr-2 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border tabular-nums">
+                {dies.map((d) => {
+                  const w = wDia.get(d);
+                  return (
+                    <tr key={d}>
+                      <td className="py-2 pr-2 whitespace-nowrap">{formatDate(d, { weekday: "short", day: "numeric", month: "short" })}</td>
+                      <td className="py-2 pr-2 text-muted">{rpeDia.get(d) ?? "—"}</td>
+                      <td className="py-2 pr-2 font-medium">{loads.get(d) ? Math.round(loads.get(d)!) : "—"}</td>
+                      <td className="py-2 pr-2">{w ? `${wellnessScore(w)}/25` : "—"}</td>
+                      <td className="py-2 pr-2">{w ? w.fatiga : "—"}</td>
+                      <td className="py-2 pr-2">{w?.son_hores != null ? `${w.son_hores} h` : "—"}</td>
+                      <td className="py-2 pr-2">{w ? w.dolor_eva : "—"}</td>
+                      <td className="py-2">{w ? <SemaforBadge status={wellnessStatus(w)} /> : ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card title="Com es calcula">
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+          <li><b className="text-foreground">sRPE</b> = RPE de la sessió (Borg CR-10) × minuts. Només compten les sessions marcades com a fetes.</li>
+          <li><b className="text-foreground">ACWR</b> = càrrega dels últims 7 dies ÷ mitjana setmanal dels últims 28. Òptim 0,8–1,3; per sobre d&apos;1,5 augmenta el risc de lesió.</li>
+          <li><b className="text-foreground">Monotonia</b> = mitjana diària ÷ desviació estàndard (7 dies). Per sobre de 2 vol dir poca variació entre dies forts i suaus.</li>
+          <li><b className="text-foreground">Strain</b> = càrrega setmanal × monotonia: resumeix la fatiga acumulada de la setmana.</li>
+        </ul>
       </Card>
     </div>
   );

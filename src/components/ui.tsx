@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import type { Semafor } from "@/lib/calc";
+import type { Semafor, ZonaAcwr } from "@/lib/calc";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -137,4 +137,23 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
 
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">{children}</p>;
+}
+
+const ACWR_ZONA = {
+  baixa: { tone: "neutral", icon: "▽", label: "Càrrega baixa" },
+  optima: { tone: "ok", icon: "●", label: "Zona òptima" },
+  precaucio: { tone: "warn", icon: "▲", label: "Precaució" },
+  risc: { tone: "danger", icon: "■", label: "Risc" },
+  sense: { tone: "neutral", icon: "○", label: "Sense dades" },
+} as const;
+
+/** Zona de l'ACWR amb icona + text (mai només color). */
+export function AcwrBadge({ zona }: { zona: ZonaAcwr }) {
+  const z = ACWR_ZONA[zona];
+  return (
+    <Badge tone={z.tone}>
+      <span aria-hidden>{z.icon}</span>
+      {z.label}
+    </Badge>
+  );
 }

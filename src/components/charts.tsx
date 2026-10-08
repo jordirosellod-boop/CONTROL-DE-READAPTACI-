@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ReactNode } from "react";
 
 // Colors per entitat (mai per posició): cada costat té sempre el mateix color.
@@ -140,5 +140,45 @@ export function TestChart({ title, unit, rows, baselines }: { title: string; uni
         </LineChart>
       </ResponsiveContainer>
     </ChartFrame>
+  );
+}
+
+const legendProps = { iconType: "plainline" as const, wrapperStyle: { fontSize: 12 }, formatter: (v: string) => <span style={{ color: "var(--muted)" }}>{v}</span> };
+
+/**
+ * Fatiga acumulada: càrrega de cada dia (barres) amb les mitjanes mòbils aguda (7 d)
+ * i crònica (28 d), totes en UA/dia (un sol eix). A sota, l'ACWR amb la zona òptima.
+ */
+export function FatigueCharts({ data }: { data: { data: string; srpe: number; aguda: number; cronica: number; acwr: number | null }[] }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <ChartFrame title="Càrrega diària i mitjanes (UA/dia)" height={240}>
+        <ResponsiveContainer>
+          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="data" tickFormatter={shortDate} {...axisProps} minTickGap={20} />
+            <YAxis {...axisProps} />
+            <Tooltip cursor={{ fill: "var(--surface-2)" }} content={(p) => <TooltipBox {...p} unit="UA" labelFormat={shortDate} />} />
+            <Legend {...legendProps} />
+            <Bar isAnimationActive={false} dataKey="srpe" name="Càrrega del dia" fill="var(--series-1)" fillOpacity={0.35} radius={[3, 3, 0, 0]} maxBarSize={14} />
+            <Line isAnimationActive={false} type="monotone" dataKey="aguda" name="Aguda (7 d)" stroke="var(--series-1)" strokeWidth={2} dot={false} />
+            <Line isAnimationActive={false} type="monotone" dataKey="cronica" name="Crònica (28 d)" stroke="var(--series-2)" strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </ChartFrame>
+      <ChartFrame title="ACWR (aguda ÷ crònica) · franja verda = zona òptima 0,8–1,3" height={240}>
+        <ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="data" tickFormatter={shortDate} {...axisProps} minTickGap={20} />
+            <YAxis {...axisProps} domain={[0, (max: number) => Math.max(2, Math.ceil(max * 2) / 2)]} />
+            <ReferenceArea y1={0.8} y2={1.3} fill="var(--ok)" fillOpacity={0.12} ifOverflow="extendDomain" />
+            <ReferenceLine y={1.5} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: "1,5 risc", position: "insideTopRight", fontSize: 11, fill: "var(--danger)" }} />
+            <Tooltip content={(p) => <TooltipBox {...p} labelFormat={shortDate} />} />
+            <Line isAnimationActive={false} type="monotone" dataKey="acwr" name="ACWR" stroke="var(--series-1)" strokeWidth={2} dot={false} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartFrame>
+    </div>
   );
 }

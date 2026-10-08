@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  acwrZone,
+  fatigueMetrics,
+  fatigueSeries,
+  wellnessTrend,
   baselineOf,
   daysBetween,
   loadProgression,
@@ -125,5 +129,62 @@ describe("vídeos", () => {
     expect(videoEmbedUrl("https://vimeo.com/12345")).toBe("https://player.vimeo.com/video/12345");
     expect(videoEmbedUrl("https://example.com/video.mp4")).toBeNull();
     expect(videoEmbedUrl("no és url")).toBeNull();
+  });
+});
+
+describe("fatiga acumulada", () => {
+  const ses = (data: string, rpe: number, min: number, completada = true) => ({ data, rpe, durada_min: min, completada });
+  // 4 setmanes estables de 3 sessions de 300 UA (900/setmana)
+  const base = ["2026-09-08", "2026-09-10", "2026-09-12", "2026-09-15", "2026-09-17", "2026-09-19", "2026-09-22", "2026-09-24", "2026-09-26", "2026-09-29", "2026-10-01", "2026-10-03"].map((d) => ses(d, 5, 60));
+
+  it("ACWR ~1 amb càrrega estable i zona òptima", () => {
+    const f = fatigueMetrics(base, "2026-10-05");
+    expect(f.aguda).toBe(900);
+    expect(f.cronica).toBe(900);
+    expect(f.acwr).toBeCloseTo(1);
+    expect(f.zona).toBe("optima");
+    expect(f.fiable).toBe(true);
+  });
+  it("pic de càrrega → risc", () => {
+    const pic = [...base, ses("2026-10-04", 9, 90), ses("2026-10-05", 9, 90)];
+    const f = fatigueMetrics(pic, "2026-10-05");
+    expect(f.aguda).toBe(900 + 1620);
+    expect(f.zona).toBe("risc");
+  });
+  it("ignora sessions no completades i marca poc fiable amb poc historial", () => {
+    const f = fatigueMetrics([ses("2026-10-01", 6, 60), ses("2026-10-02", 8, 60, false)], "2026-10-05");
+    expect(f.aguda).toBe(360);
+    expect(f.fiable).toBe(false);
+  });
+  it("monotonia i strain", () => {
+    // 7 dies: 300,0,300,0,300,0,0 → mitjana 128.6, sd 147.5 → monotonia 0.87
+    const f = fatigueMetrics(base, "2026-10-05");
+    expect(f.monotonia).toBeCloseTo(0.87, 2);
+    expect(f.strain).toBeCloseTo(900 * f.monotonia!, 5);
+    expect(fatigueMetrics([], "2026-10-05").monotonia).toBeNull();
+  });
+  it("zones ACWR", () => {
+    expect(acwrZone(null)).toBe("sense");
+    expect(acwrZone(0.5)).toBe("baixa");
+    expect(acwrZone(1.2)).toBe("optima");
+    expect(acwrZone(1.4)).toBe("precaucio");
+    expect(acwrZone(1.6)).toBe("risc");
+  });
+  it("sèrie diària coherent amb les mètriques", () => {
+    const serie = fatigueSeries(base, "2026-10-05", 14);
+    expect(serie).toHaveLength(14);
+    expect(serie.at(-1)!.data).toBe("2026-10-05");
+    expect(serie.at(-1)!.acwr).toBeCloseTo(1);
+    expect(serie.find((d) => d.data === "2026-10-03")!.srpe).toBe(300);
+  });
+  it("tendència del wellness (7 vs 28 dies)", () => {
+    const e = (data: string, v: number, dolor: number) => ({ data, son_qualitat: v, fatiga: v, estres: v, estat_anim: v, recuperacio: v, dolor_eva: dolor, son_hores: 8 });
+    const entries = [e("2026-09-10", 4, 0), e("2026-09-15", 4, 0), e("2026-09-20", 4, 0), e("2026-10-02", 3, 2), e("2026-10-04", 3, 2)];
+    const [punt, fatiga, son, dolor] = wellnessTrend(entries, "2026-10-05");
+    expect(punt.dies7).toBe(15);
+    expect(punt.canvi!).toBeLessThan(0);
+    expect(fatiga.dies7).toBe(3);
+    expect(son.canvi).toBe(0);
+    expect(dolor.canvi!).toBeLessThan(0); // més dolor = pitjor
   });
 });
