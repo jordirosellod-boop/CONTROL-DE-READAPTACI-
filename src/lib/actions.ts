@@ -357,6 +357,42 @@ export async function deleteFieldWork(playerId: string, sessionId: string): Prom
 }
 
 // ---------------------------------------------------------------------------
+// Tractaments a camilla
+// ---------------------------------------------------------------------------
+
+export async function saveTreatment(playerId: string, id: string | null, _: FormState, fd: FormData): Promise<FormState> {
+  const supabase = await authed();
+  const row = {
+    player_id: playerId,
+    injury_id: str(fd, "injury_id"),
+    data: str(fd, "data") ?? todayISO(),
+    durada_min: int(fd, "durada_min"),
+    tecniques: list(fd, "tecniques"),
+    zones: list(fd, "zones"),
+    dolor_abans: int(fd, "dolor_abans"),
+    dolor_despres: int(fd, "dolor_despres"),
+    notes: str(fd, "notes"),
+  };
+  if (!row.tecniques.length && !row.notes) return { error: "Marca almenys una tècnica o escriu una observació." };
+  if (id) delete (row as Partial<typeof row>).injury_id; // en editar es manté la lesió original
+  const { error } = id ? await supabase.from("treatments").update(row).eq("id", id) : await supabase.from("treatments").insert(row);
+  if (error) {
+    if (error.code === "42P01" || error.code === "PGRST205") return { error: "Falta crear la taula de tractaments a Supabase (executa el SQL de tractaments)." };
+    return { error: dbError(error) };
+  }
+  revalidatePath(playerPath(playerId));
+  redirect(`${playerPath(playerId)}?tab=tractament`);
+}
+
+export async function deleteTreatment(playerId: string, id: string): Promise<FormState> {
+  const supabase = await authed();
+  const { error } = await supabase.from("treatments").delete().eq("id", id);
+  if (error) return { error: dbError(error) };
+  revalidatePath(playerPath(playerId));
+  redirect(`${playerPath(playerId)}?tab=tractament`);
+}
+
+// ---------------------------------------------------------------------------
 // Tests físics
 // ---------------------------------------------------------------------------
 

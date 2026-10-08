@@ -99,6 +99,33 @@ export const ZONES_COS: { value: string; label: string; grup: string }[] = [
   { value: "peu_e", label: "Peu E", grup: "Cama" },
 ];
 
+/** Tècniques habituals de tractament a camilla. */
+export const TECNIQUES: { value: string; label: string; grup: string }[] = [
+  { value: "massoterapia", label: "Massoteràpia", grup: "Manual" },
+  { value: "terapia_manual", label: "Teràpia manual", grup: "Manual" },
+  { value: "mobilitzacio", label: "Mobilització articular", grup: "Manual" },
+  { value: "manipulacio", label: "Manipulació", grup: "Manual" },
+  { value: "miofascial", label: "Inducció miofascial", grup: "Manual" },
+  { value: "neurodinamia", label: "Neurodinàmia", grup: "Manual" },
+  { value: "estiraments", label: "Estiraments", grup: "Manual" },
+  { value: "drenatge", label: "Drenatge limfàtic", grup: "Manual" },
+  { value: "puncio_seca", label: "Punció seca", grup: "Invasiva" },
+  { value: "epi", label: "Electròlisi (EPI)", grup: "Invasiva" },
+  { value: "neuromodulacio", label: "Neuromodulació percutània", grup: "Invasiva" },
+  { value: "tecar", label: "Diatèrmia / Tecar", grup: "Electroteràpia i aparells" },
+  { value: "tens", label: "TENS", grup: "Electroteràpia i aparells" },
+  { value: "ems", label: "Electroestimulació (EMS)", grup: "Electroteràpia i aparells" },
+  { value: "ones_xoc", label: "Ones de xoc", grup: "Electroteràpia i aparells" },
+  { value: "ultrasons", label: "Ultrasons", grup: "Electroteràpia i aparells" },
+  { value: "laser", label: "Làser", grup: "Electroteràpia i aparells" },
+  { value: "magnetoterapia", label: "Magnetoteràpia", grup: "Electroteràpia i aparells" },
+  { value: "pressoterapia", label: "Pressoteràpia", grup: "Electroteràpia i aparells" },
+  { value: "crioterapia", label: "Crioteràpia / gel", grup: "Altres" },
+  { value: "termoterapia", label: "Termoteràpia", grup: "Altres" },
+  { value: "vendatge", label: "Vendatge funcional", grup: "Altres" },
+  { value: "kinesiotape", label: "Kinesiotape", grup: "Altres" },
+];
+
 export const WELLNESS_ITEMS = [
   { key: "son_qualitat", label: "Qualitat del son", baix: "Molt dolenta", alt: "Excel·lent" },
   { key: "fatiga", label: "Fatiga", baix: "Molt fatigat", alt: "Molt fresc" },

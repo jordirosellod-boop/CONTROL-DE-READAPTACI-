@@ -2,7 +2,7 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "./supabase/server";
-import type { Exercise, FieldWork, Injury, PhysicalTest, Player, Session, SessionExercise, WellnessEntry } from "./types";
+import type { Exercise, FieldWork, Injury, PhysicalTest, Player, Session, SessionExercise, Treatment, WellnessEntry } from "./types";
 
 /** Client amb usuari verificat (redirigeix a /login si no n'hi ha). */
 export const getDb = cache(async () => {
@@ -31,12 +31,13 @@ export async function getPlayer(id: string) {
 
 export async function getPlayerBundle(id: string) {
   const { supabase } = await getDb();
-  const [player, injuries, wellness, sessions, tests] = await Promise.all([
+  const [player, injuries, wellness, sessions, tests, treatments] = await Promise.all([
     getPlayer(id),
     supabase.from("injuries").select("*").eq("player_id", id).order("data_lesio", { ascending: false }),
     supabase.from("wellness_entries").select("*").eq("player_id", id).order("data", { ascending: false }).limit(120),
     supabase.from("sessions").select("*, field_work(*)").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("tests").select("*").eq("player_id", id).order("data").order("created_at"),
+    supabase.from("treatments").select("*").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
   ]);
   const sessionRows = (unwrap(sessions) as (Session & { field_work: FieldWork | FieldWork[] | null })[]).map((s) => ({ ...s, field_work: one(s.field_work) }));
   return {
@@ -45,7 +46,17 @@ export async function getPlayerBundle(id: string) {
     wellness: unwrap(wellness) as WellnessEntry[],
     sessions: sessionRows as SessionWithField[],
     tests: unwrap(tests) as PhysicalTest[],
+    // Si encara no s'ha creat la taula de tractaments, la resta de la fitxa continua funcionant.
+    treatments: (treatments.error ? [] : treatments.data) as Treatment[],
+    treatmentsReady: !treatments.error,
   };
+}
+
+export async function getTreatment(id: string) {
+  const { supabase } = await getDb();
+  const t = unwrap(await supabase.from("treatments").select("*").eq("id", id).maybeSingle()) as Treatment | null;
+  if (!t) notFound();
+  return t;
 }
 
 export async function getSessionDetail(sessionId: string) {

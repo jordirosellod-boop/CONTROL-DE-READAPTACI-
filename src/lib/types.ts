@@ -118,3 +118,16 @@ export interface PhysicalTest {
   es_baseline: boolean;
   notes: string | null;
 }
+
+export interface Treatment {
+  id: string;
+  player_id: string;
+  injury_id: string | null;
+  data: string;
+  durada_min: number | null;
+  tecniques: string[];
+  zones: string[];
+  dolor_abans: number | null;
+  dolor_despres: number | null;
+  notes: string | null;
+}

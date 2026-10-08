@@ -12,6 +12,7 @@ Aplicació web (PWA, instal·lable al mòbil) per al seguiment i la readaptació
 | **Lesions** | Diagnòstic, categoria, zona, costat, data de lesió, data d'intervenció (opcional), data d'alta. Setmana de tractament calculada automàticament. |
 | **Wellness diari** | Qualitat i hores de son, fatiga, estrès, ànim, recuperació (1–5, 5 = millor), dolor EVA 0–10 + zones del cos. Puntuació 5–25 i semàfor. Un registre per dia (es pot editar). |
 | **Sessions** | Exercicis amb vídeo (YouTube/Vimeo incrustat), sèries, reps, temps, càrrega, descans i RPE. RPE i durada de sessió → sRPE. Reordenar, duplicar una sessió per avui, marcar com a feta. |
+| **Tractament a camilla** | Data, durada, tècniques aplicades (manuals, invasives, electroteràpia, vendatges…), zones tractades, dolor EVA abans i després, observacions. Resum de tractaments, minuts i canvi de dolor mitjà. |
 | **Carrera i camp** | Minuts, distància, velocitat màx./mitjana, esprints, acceleracions, desacceleracions, canvis de direcció, tipus de treball. Gràfic de distància setmanal. |
 | **Tests físics** | Força, mobilitat, CMJ, hop, isomètrics i específics. Baseline (pre-lesió o primer valor), % de millora/dèficit, LSI entre costats, tests "menys és millor" (temps). Gràfic d'evolució amb línia de baseline. |
 | **Biblioteca d'exercicis** | Exercicis reutilitzables amb vídeo i indicacions. |
@@ -36,7 +37,7 @@ Aplicació web (PWA, instal·lable al mòbil) per al seguiment i la readaptació
 ### 1. Crear el projecte de Supabase
 
 1. Crea un projecte a [supabase.com](https://supabase.com) (recomanat: regió **EU**, perquè són dades de salut).
-2. A **SQL Editor**, enganxa i executa el contingut de `supabase/migrations/20261007000000_esquema_inicial.sql`.
+2. A **SQL Editor**, executa en ordre els fitxers de `supabase/migrations/` (`20261007000000_esquema_inicial.sql` i després `20261008000000_tractaments.sql`).
    (O bé, amb la CLI de Supabase: `supabase link` + `supabase db push`.)
 3. **Desactiva el registre públic** perquè ningú més pugui crear-se un compte:
    *Authentication → Sign In / Providers → desactiva "Allow new users to sign up"*.

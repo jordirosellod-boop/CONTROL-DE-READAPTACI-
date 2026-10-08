@@ -4,14 +4,15 @@ import { ActionButton } from "@/components/forms";
 import { Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
 import { deleteTest, deleteWellness } from "@/lib/actions";
 import { addDays, baselineOf, formatDate, formatPct, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
-import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
+import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
 import { activeInjury, getPlayerBundle, type SessionWithField } from "@/lib/data";
-import type { Injury, PhysicalTest, WellnessEntry } from "@/lib/types";
+import type { Injury, PhysicalTest, Treatment, WellnessEntry } from "@/lib/types";
 
 const TABS = [
   { key: "resum", label: "Resum" },
   { key: "wellness", label: "Wellness" },
   { key: "sessions", label: "Sessions" },
+  { key: "tractament", label: "Tractament" },
   { key: "tests", label: "Tests" },
   { key: "lesions", label: "Lesions" },
 ] as const;
@@ -21,7 +22,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
   const { id } = await params;
   const { tab: rawTab } = await searchParams;
   const tab: Tab = TABS.some((t) => t.key === rawTab) ? (rawTab as Tab) : "resum";
-  const { player, injuries, wellness, sessions, tests } = await getPlayerBundle(id);
+  const { player, injuries, wellness, sessions, tests, treatments, treatmentsReady } = await getPlayerBundle(id);
   const today = todayISO();
   const injury = activeInjury(injuries);
   // Sessions i tests del procés actual (des de la lesió activa), o tot l'històric si no n'hi ha.
@@ -47,6 +48,9 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
             <LinkButton href={`/jugadors/${id}/wellness`} variant="secondary">
               Wellness
             </LinkButton>
+            <LinkButton href={`/jugadors/${id}/tractaments/nou`} variant="secondary">
+              + Tractament
+            </LinkButton>
             <LinkButton href={`/jugadors/${id}/sessions/nova`}>+ Sessió</LinkButton>
           </>
         }
@@ -70,6 +74,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
       {tab === "resum" && <Resum playerId={id} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
       {tab === "wellness" && <WellnessTab playerId={id} wellness={wellness} />}
       {tab === "sessions" && <SessionsTab playerId={id} sessions={sessions} today={today} />}
+      {tab === "tractament" && <TractamentTab playerId={id} treatments={treatments} ready={treatmentsReady} injury={injury} />}
       {tab === "tests" && <TestsTab playerId={id} tests={procTests} allTests={tests} />}
       {tab === "lesions" && <LesionsTab playerId={id} injuries={injuries} historial={player.historial_lesions} sessions={sessions} today={today} />}
     </>
@@ -377,6 +382,62 @@ function LesionsTab({ playerId, injuries, historial, sessions, today }: { player
       </Card>
       <Card title="Historial previ" actions={<LinkButton href={`/jugadors/${playerId}/editar`} variant="ghost" size="sm">Editar</LinkButton>}>
         {historial ? <p className="whitespace-pre-wrap text-sm">{historial}</p> : <Empty>Sense historial previ.</Empty>}
+      </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function TractamentTab({ playerId, treatments, ready, injury }: { playerId: string; treatments: Treatment[]; ready: boolean; injury: Injury | null }) {
+  if (!ready) {
+    return (
+      <Card title="Tractament a camilla">
+        <Empty>Falta crear la taula de tractaments a Supabase. Executa el SQL de tractaments al SQL Editor i torna a carregar la pàgina.</Empty>
+      </Card>
+    );
+  }
+  const delProces = injury ? treatments.filter((t) => t.data >= injury.data_lesio) : treatments;
+  const minuts = delProces.reduce((acc, t) => acc + (t.durada_min ?? 0), 0);
+  const ambDolor = delProces.filter((t) => t.dolor_abans != null && t.dolor_despres != null);
+  const millora = ambDolor.length ? ambDolor.reduce((acc, t) => acc + (t.dolor_abans! - t.dolor_despres!), 0) / ambDolor.length : null;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label={injury ? "Tractaments (lesió actual)" : "Tractaments"} value={delProces.length} />
+        <Stat label="Minuts a camilla" value={minuts} />
+        <Stat
+          label="Canvi de dolor"
+          value={millora == null ? "—" : millora === 0 ? "=" : `${millora > 0 ? "↓" : "↑"} ${Math.abs(millora).toFixed(1)}`}
+          sub="mitjana EVA abans → després"
+        />
+      </div>
+      <Card title="Historial" actions={<LinkButton href={`/jugadors/${playerId}/tractaments/nou`} size="sm">+ Nou</LinkButton>}>
+        {treatments.length === 0 ? (
+          <Empty>Encara no hi ha cap tractament registrat.</Empty>
+        ) : (
+          <ul className="divide-y divide-border">
+            {treatments.map((t) => (
+              <li key={t.id}>
+                <Link href={`/jugadors/${playerId}/tractaments/${t.id}`} className="-mx-2 flex gap-3 rounded-lg px-2 py-3 hover:bg-surface-2">
+                  <div className="w-14 shrink-0 text-center">
+                    <div className="text-xs text-muted">{formatDate(t.data, { month: "short" })}</div>
+                    <div className="display text-2xl text-heading tabular-nums">{Number(t.data.slice(8))}</div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap gap-1">
+                      {t.tecniques.length ? t.tecniques.map((x) => <Badge key={x} tone="accent">{labelOf(TECNIQUES, x)}</Badge>) : <span className="text-sm text-muted">Sense tècniques marcades</span>}
+                    </div>
+                    <div className="mt-1 text-sm text-muted">
+                      {[t.zones.map((z) => labelOf(ZONES_COS, z)).join(", "), t.durada_min != null && `${t.durada_min} min`, t.dolor_abans != null && t.dolor_despres != null && `Dolor ${t.dolor_abans} → ${t.dolor_despres}`].filter(Boolean).join(" · ")}
+                    </div>
+                    {t.notes && <p className="mt-1 line-clamp-2 text-sm">{t.notes}</p>}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );
