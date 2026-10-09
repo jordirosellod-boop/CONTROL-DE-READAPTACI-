@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
-const PUBLIC_PATHS = ["/login", "/configuracio"];
+const PUBLIC_PATHS = ["/login", "/configuracio", "/api/keepalive"];
 
 // Refresca la sessió de Supabase i protegeix totes les rutes: només els
 // readaptadors amb sessió iniciada poden entrar a l'aplicació.
