@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Nou tractament" };
 export default async function NouTractament({ params }: PageProps<"/jugadors/[id]/tractaments/nou">) {
   const { id } = await params;
   const { supabase } = await getDb();
-  const [player, injuries] = await Promise.all([getPlayer(id), supabase.from("injuries").select("*").eq("player_id", id)]);
+  const [player, injuries] = await Promise.all([getPlayer(id), supabase.from("ra_injuries").select("*").eq("player_id", id)]);
   const injury = activeInjury((injuries.data ?? []) as Injury[]);
   return (
     <>

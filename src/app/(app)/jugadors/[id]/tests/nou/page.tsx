@@ -14,8 +14,8 @@ export default async function NouTest({ params }: PageProps<"/jugadors/[id]/test
   const { supabase } = await getDb();
   const [player, injuries, prev] = await Promise.all([
     getPlayer(id),
-    supabase.from("injuries").select("*").eq("player_id", id),
-    supabase.from("tests").select("nom").eq("player_id", id),
+    supabase.from("ra_injuries").select("*").eq("player_id", id),
+    supabase.from("ra_tests").select("nom").eq("player_id", id),
   ]);
   const injury = activeInjury((injuries.data ?? []) as Injury[]);
   const noms = [...new Set([...(prev.data ?? []).map((t) => t.nom as string), ...TESTS_SUGGERITS])];

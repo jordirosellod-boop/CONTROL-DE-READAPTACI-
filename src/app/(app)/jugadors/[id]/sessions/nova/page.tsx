@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Nova sessió" };
 export default async function NovaSessio({ params }: PageProps<"/jugadors/[id]/sessions/nova">) {
   const { id } = await params;
   const { supabase } = await getDb();
-  const [player, injuries] = await Promise.all([getPlayer(id), supabase.from("injuries").select("*").eq("player_id", id)]);
+  const [player, injuries] = await Promise.all([getPlayer(id), supabase.from("ra_injuries").select("*").eq("player_id", id)]);
   const injury = activeInjury((injuries.data ?? []) as Injury[]);
   return (
     <>

@@ -36,14 +36,20 @@ Aplicació web (PWA, instal·lable al mòbil) per al seguiment i la readaptació
 
 ## Posada en marxa
 
-### 1. Crear el projecte de Supabase
+### 1. Preparar Supabase
 
-1. Crea un projecte a [supabase.com](https://supabase.com) (recomanat: regió **EU**, perquè són dades de salut).
-2. A **SQL Editor**, executa en ordre els fitxers de `supabase/migrations/` (`20261007000000_esquema_inicial.sql` i després `20261008000000_tractaments.sql`).
-   (O bé, amb la CLI de Supabase: `supabase link` + `supabase db push`.)
-3. **Desactiva el registre públic** perquè ningú més pugui crear-se un compte:
-   *Authentication → Sign In / Providers → desactiva "Allow new users to sign up"*.
-4. Crea els usuaris readaptadors a *Authentication → Users → Add user* (correu + contrasenya, marcant "Auto Confirm User").
+L'app pot anar en un projecte propi o **compartir un projecte amb una altra app** (útil amb el pla gratuït, que només permet 2 projectes actius): totes les taules porten el prefix `ra_` i només hi entren els usuaris de la llista `ra_staff`.
+
+1. A **SQL Editor**, executa `supabase/migrations/20261010000000_readaptacio.sql` (es pot executar més d'un cop).
+2. Crea l'usuari del readaptador a *Authentication → Users → Add user* (marca "Auto Confirm User"), o fes servir un usuari que ja existeixi.
+3. Autoritza'l a l'app de readaptació:
+   ```sql
+   insert into public.ra_staff (user_id, email)
+   select id, email from auth.users where email = 'correu@exemple.cat';
+   ```
+4. Si el projecte és només per a aquesta app, desactiva el registre públic (*Authentication → Sign In / Providers → "Allow new users to sign up"*).
+
+L'app fa un "ping" diari (Vercel Cron → `/api/keepalive`) perquè el projecte gratuït no es posi en pausa per inactivitat.
 
 ### 2. Configurar i executar l'app
 

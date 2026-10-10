@@ -12,7 +12,7 @@ export default async function Jugadors({ searchParams }: PageProps<"/jugadors">)
   const { arxivats } = await searchParams;
   const showArchived = arxivats === "1";
   const { supabase } = await getDb();
-  const { data, error } = await supabase.from("players").select("*, injuries(*)").eq("arxivat", showArchived).order("nom");
+  const { data, error } = await supabase.from("ra_players").select("*, injuries:ra_injuries(*)").eq("arxivat", showArchived).order("nom");
   if (error) throw new Error(error.message);
   const players = data as (Player & { injuries: Injury[] })[];
 

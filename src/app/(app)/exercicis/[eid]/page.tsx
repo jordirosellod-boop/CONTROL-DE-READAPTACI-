@@ -8,7 +8,7 @@ import { ExerciseForm } from "../exercise-form";
 export default async function EditarExercici({ params }: PageProps<"/exercicis/[eid]">) {
   const { eid } = await params;
   const { supabase } = await getDb();
-  const { data } = await supabase.from("exercises").select("*").eq("id", eid).maybeSingle();
+  const { data } = await supabase.from("ra_exercises").select("*").eq("id", eid).maybeSingle();
   if (!data) notFound();
   const exercise = data as Exercise;
   return (

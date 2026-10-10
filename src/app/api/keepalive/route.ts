@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
   if (!isSupabaseConfigured) return Response.json({ ok: false, error: "Supabase no configurat" }, { status: 500 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/players?select=id&limit=1`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/ra_players?select=id&limit=1`, {
     headers: { apikey: SUPABASE_KEY },
     cache: "no-store",
   });

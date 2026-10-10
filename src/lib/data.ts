@@ -9,6 +9,9 @@ export const getDb = cache(async () => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims?.sub) redirect("/login");
+  // Usuari d'una altra app del mateix projecte de Supabase: no és readaptador.
+  const { data: staff } = await supabase.rpc("ra_is_staff");
+  if (!staff) redirect("/sense-acces");
   return { supabase, email: (data.claims.email as string | undefined) ?? "" };
 });
 
@@ -23,7 +26,7 @@ const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? nu
 
 export async function getPlayer(id: string) {
   const { supabase } = await getDb();
-  const res = await supabase.from("players").select("*").eq("id", id).maybeSingle();
+  const res = await supabase.from("ra_players").select("*").eq("id", id).maybeSingle();
   const player = unwrap(res) as Player | null;
   if (!player) notFound();
   return player;
@@ -33,11 +36,11 @@ export async function getPlayerBundle(id: string) {
   const { supabase } = await getDb();
   const [player, injuries, wellness, sessions, tests, treatments] = await Promise.all([
     getPlayer(id),
-    supabase.from("injuries").select("*").eq("player_id", id).order("data_lesio", { ascending: false }),
-    supabase.from("wellness_entries").select("*").eq("player_id", id).order("data", { ascending: false }).limit(120),
-    supabase.from("sessions").select("*, field_work(*)").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
-    supabase.from("tests").select("*").eq("player_id", id).order("data").order("created_at"),
-    supabase.from("treatments").select("*").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("ra_injuries").select("*").eq("player_id", id).order("data_lesio", { ascending: false }),
+    supabase.from("ra_wellness_entries").select("*").eq("player_id", id).order("data", { ascending: false }).limit(120),
+    supabase.from("ra_sessions").select("*, field_work:ra_field_work(*)").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("ra_tests").select("*").eq("player_id", id).order("data").order("created_at"),
+    supabase.from("ra_treatments").select("*").eq("player_id", id).order("data", { ascending: false }).order("created_at", { ascending: false }),
   ]);
   const sessionRows = (unwrap(sessions) as (Session & { field_work: FieldWork | FieldWork[] | null })[]).map((s) => ({ ...s, field_work: one(s.field_work) }));
   return {
@@ -54,7 +57,7 @@ export async function getPlayerBundle(id: string) {
 
 export async function getTreatment(id: string) {
   const { supabase } = await getDb();
-  const t = unwrap(await supabase.from("treatments").select("*").eq("id", id).maybeSingle()) as Treatment | null;
+  const t = unwrap(await supabase.from("ra_treatments").select("*").eq("id", id).maybeSingle()) as Treatment | null;
   if (!t) notFound();
   return t;
 }
@@ -62,8 +65,8 @@ export async function getTreatment(id: string) {
 export async function getSessionDetail(sessionId: string) {
   const { supabase } = await getDb();
   const res = await supabase
-    .from("sessions")
-    .select("*, field_work(*), session_exercises(*)")
+    .from("ra_sessions")
+    .select("*, field_work:ra_field_work(*), session_exercises:ra_session_exercises(*)")
     .eq("id", sessionId)
     .order("ordre", { referencedTable: "session_exercises" })
     .order("created_at", { referencedTable: "session_exercises" })
@@ -75,29 +78,29 @@ export async function getSessionDetail(sessionId: string) {
 
 export async function getExercises() {
   const { supabase } = await getDb();
-  return unwrap(await supabase.from("exercises").select("*").order("nom")) as Exercise[];
+  return unwrap(await supabase.from("ra_exercises").select("*").order("nom")) as Exercise[];
 }
 
 export async function getInjury(id: string) {
   const { supabase } = await getDb();
-  const injury = unwrap(await supabase.from("injuries").select("*").eq("id", id).maybeSingle()) as Injury | null;
+  const injury = unwrap(await supabase.from("ra_injuries").select("*").eq("id", id).maybeSingle()) as Injury | null;
   if (!injury) notFound();
   return injury;
 }
 
 export async function getWellnessFor(playerId: string, date: string) {
   const { supabase } = await getDb();
-  return unwrap(await supabase.from("wellness_entries").select("*").eq("player_id", playerId).eq("data", date).maybeSingle()) as WellnessEntry | null;
+  return unwrap(await supabase.from("ra_wellness_entries").select("*").eq("player_id", playerId).eq("data", date).maybeSingle()) as WellnessEntry | null;
 }
 
 /** Dades per al panell: jugadors actius amb lesions, wellness recent i sessions. */
 export async function getDashboard(today: string, since: string) {
   const { supabase } = await getDb();
   const [players, wellness, sessions, tests] = await Promise.all([
-    supabase.from("players").select("*, injuries(*)").eq("arxivat", false).order("nom"),
-    supabase.from("wellness_entries").select("*").gte("data", since).lte("data", today).order("data"),
-    supabase.from("sessions").select("id, player_id, injury_id, data, completada, rpe, durada_min, field_work(minuts_carrera, distancia_m, esprints)"),
-    supabase.from("tests").select("player_id, nom, costat, valor, data, es_baseline, millor_si, unitat, tipus, created_at"),
+    supabase.from("ra_players").select("*, injuries:ra_injuries(*)").eq("arxivat", false).order("nom"),
+    supabase.from("ra_wellness_entries").select("*").gte("data", since).lte("data", today).order("data"),
+    supabase.from("ra_sessions").select("id, player_id, injury_id, data, completada, rpe, durada_min, field_work:ra_field_work(minuts_carrera, distancia_m, esprints)"),
+    supabase.from("ra_tests").select("player_id, nom, costat, valor, data, es_baseline, millor_si, unitat, tipus, created_at"),
   ]);
   return {
     players: unwrap(players) as (Player & { injuries: Injury[] })[],
