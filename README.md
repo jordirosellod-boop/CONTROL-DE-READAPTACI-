@@ -41,12 +41,11 @@ Aplicació web (PWA, instal·lable al mòbil) per al seguiment i la readaptació
 L'app pot anar en un projecte propi o **compartir un projecte amb una altra app** (útil amb el pla gratuït, que només permet 2 projectes actius): totes les taules porten el prefix `ra_` i només hi entren els usuaris de la llista `ra_staff`.
 
 1. A **SQL Editor**, executa `supabase/migrations/20261010000000_readaptacio.sql` (es pot executar més d'un cop).
-2. Crea l'usuari del readaptador a *Authentication → Users → Add user* (marca "Auto Confirm User"), o fes servir un usuari que ja existeixi.
-3. Autoritza'l a l'app de readaptació:
+2. Autoritza els correus de l'equip (es pot fer abans de crear els comptes):
    ```sql
-   insert into public.ra_staff (user_id, email)
-   select id, email from auth.users where email = 'correu@exemple.cat';
+   insert into public.ra_staff (email, nom) values ('correu@exemple.cat', 'Nom') on conflict do nothing;
    ```
+3. Crea els comptes a *Authentication → Users → Add user* (marca "Auto Confirm User") si encara no existeixen. Tot l'equip autoritzat comparteix les mateixes dades.
 4. Si el projecte és només per a aquesta app, desactiva el registre públic (*Authentication → Sign In / Providers → "Allow new users to sign up"*).
 
 L'app fa un "ping" diari (Vercel Cron → `/api/keepalive`) perquè el projecte gratuït no es posi en pausa per inactivitat.
