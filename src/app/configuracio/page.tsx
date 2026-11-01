@@ -11,8 +11,8 @@ export default function ConfiguracioPage() {
         <code> .env.example</code>) amb aquestes variables i reinicia el servidor:
       </p>
       <pre className="mt-4 overflow-x-auto rounded-xl bg-surface-2 p-4 text-sm">
-        {`NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`}
+        {`NEXT_PUBLIC_RA_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_RA_SUPABASE_KEY=sb_publishable_...`}
       </pre>
       <p className="mt-4 text-sm text-muted">Les instruccions completes són al README.</p>
     </main>

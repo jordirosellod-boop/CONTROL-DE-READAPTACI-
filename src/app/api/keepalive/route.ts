@@ -13,9 +13,15 @@ export async function GET(request: Request) {
   }
   if (!isSupabaseConfigured) return Response.json({ ok: false, error: "Supabase no configurat" }, { status: 500 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/ra_players?select=id&limit=1`, {
-    headers: { apikey: SUPABASE_KEY },
-    cache: "no-store",
-  });
-  return Response.json({ ok: res.ok, status: res.status, at: new Date().toISOString() }, { status: res.ok ? 200 : 502 });
+  try {
+    // Sense sessió l'API respon 401 (l'RLS i els permisos ho bloquegen), però la consulta ja compta com a activitat.
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ra_players?select=id&limit=1`, {
+      headers: { apikey: SUPABASE_KEY },
+      cache: "no-store",
+    });
+    const ok = res.status < 500;
+    return Response.json({ ok, status: res.status, at: new Date().toISOString() }, { status: ok ? 200 : 502 });
+  } catch {
+    return Response.json({ ok: false, error: "Supabase no respon (projecte en pausa?)" }, { status: 502 });
+  }
 }
