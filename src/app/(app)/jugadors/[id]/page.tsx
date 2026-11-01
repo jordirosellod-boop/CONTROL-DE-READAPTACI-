@@ -36,7 +36,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
         back={{ href: "/", label: "Panell" }}
         title={
           <span className="flex flex-wrap items-center gap-3">
-            <Avatar nom={player.nom} cognoms={player.cognoms} size="lg" />
+            <Avatar nom={player.nom} cognoms={player.cognoms} foto={player.foto_url} dorsal={player.dorsal} size="lg" />
             {player.nom} {player.cognoms}
             {player.arxivat && <Badge>Arxivat</Badge>}
           </span>

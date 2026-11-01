@@ -78,7 +78,7 @@ export default async function Dashboard() {
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <Avatar nom={r.player.nom} cognoms={r.player.cognoms} />
+                    <Avatar nom={r.player.nom} cognoms={r.player.cognoms} foto={r.player.foto_url} dorsal={r.player.dorsal} />
                     <div className="min-w-0 flex-1">
                       <Link href={`/jugadors/${r.player.id}`} className="display block truncate text-2xl leading-tight text-heading hover:underline">
                         {r.player.nom} {r.player.cognoms}

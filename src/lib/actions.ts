@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import { bool, dbError, int, list, num, str, type FormState } from "./form";
 import { todayISO } from "./calc";
+import { buscaAPlantilla } from "./plantilla";
 
 /** Client de Supabase amb sessió verificada. Cada acció es reautoritza. */
 async function authed() {
@@ -68,8 +69,22 @@ export async function savePlayer(id: string | null, _: FormState, fd: FormData):
     posicio: str(fd, "posicio"),
     cama_dominant: str(fd, "cama_dominant"),
     historial_lesions: str(fd, "historial_lesions"),
+    foto_url: str(fd, "foto_url"),
+    dorsal: int(fd, "dorsal"),
+    equip: str(fd, "equip"),
   };
   if (!row.nom) return { error: "El nom és obligatori." };
+  if (row.foto_url && !/^https:\/\//.test(row.foto_url)) return { error: "L'enllaç de la foto ha de començar per https://" };
+  // Si el nom coincideix amb un jugador de la plantilla del club, completa foto, dorsal, equip i posició.
+  const web = buscaAPlantilla(row.nom, row.cognoms);
+  if (web) {
+    row.nom = web.nom;
+    row.cognoms = web.cognoms;
+    row.foto_url ??= web.foto;
+    row.dorsal ??= web.dorsal;
+    row.equip ??= web.equip;
+    row.posicio ??= web.posicio;
+  }
   const q = id ? supabase.from("ra_players").update(row).eq("id", id).select("id").single() : supabase.from("ra_players").insert(row).select("id").single();
   const { data, error } = await q;
   if (error) return { error: dbError(error) };

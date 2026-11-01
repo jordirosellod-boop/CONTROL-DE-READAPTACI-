@@ -18,6 +18,9 @@ export interface Player {
   cama_dominant: CamaDominant | null;
   historial_lesions: string | null;
   arxivat: boolean;
+  foto_url: string | null;
+  dorsal: number | null;
+  equip: string | null;
   created_at: string;
 }
 

@@ -145,16 +145,7 @@ export function Empty({ children, big }: { children: ReactNode; big?: boolean })
   );
 }
 
-/** Avatar amb les inicials del jugador, amb els colors i les ratlles de l'escut. */
-export function Avatar({ nom, cognoms, size = "md" }: { nom: string; cognoms?: string | null; size?: "sm" | "md" | "lg" }) {
-  const inicials = `${nom.trim()[0] ?? ""}${(cognoms ?? "").trim()[0] ?? ""}`.toUpperCase();
-  const sizes = { sm: "h-9 w-9 text-sm", md: "h-12 w-12 text-lg", lg: "h-16 w-16 text-2xl" };
-  return (
-    <span aria-hidden className={cx("stripes display grid shrink-0 place-items-center rounded-full bg-brand text-brand-fg ring-2 ring-[#e0b36e]/70", sizes[size])}>
-      {inicials || "?"}
-    </span>
-  );
-}
+export { Avatar } from "./avatar";
 
 /** Barra horitzontal de valor (p. ex. wellness 15/25), amb to segons l'estat. */
 export function Meter({ value, max, tone = "accent", label }: { value: number; max: number; tone?: "ok" | "warn" | "danger" | "accent"; label: string }) {

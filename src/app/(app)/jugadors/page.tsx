@@ -38,23 +38,22 @@ export default async function Jugadors({ searchParams }: PageProps<"/jugadors">)
             return (
               <li key={p.id}>
                 <Link href={`/jugadors/${p.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-                  <Avatar nom={p.nom} cognoms={p.cognoms} size="sm" />
+                  <Avatar nom={p.nom} cognoms={p.cognoms} foto={p.foto_url} dorsal={p.dorsal} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">
                       {p.nom} {p.cognoms}
                     </div>
                     <div className="truncate text-sm text-muted">
-                      {labelOf(POSICIONS, p.posicio)} · Cama {labelOf(CAMES, p.cama_dominant).toLowerCase()}
-                      {p.edat ? ` · ${p.edat} anys` : ""}
+                      {[p.equip, labelOf(POSICIONS, p.posicio), p.edat ? `${p.edat} anys` : null].filter((x) => x && x !== "—").join(" · ") ||
+                        `Cama ${labelOf(CAMES, p.cama_dominant).toLowerCase()}`}
                     </div>
+                    {inj && (
+                      <div className="mt-0.5 truncate text-xs font-medium text-warn">
+                        ▲ {inj.diagnostic} · des del {formatDate(inj.data_lesio, { day: "numeric", month: "short" })}
+                      </div>
+                    )}
                   </div>
-                  {inj ? (
-                    <Badge tone="warn">
-                      {inj.diagnostic} · des del {formatDate(inj.data_lesio, { day: "numeric", month: "short" })}
-                    </Badge>
-                  ) : (
-                    <Badge tone="ok">Disponible</Badge>
-                  )}
+                  {inj ? <Badge tone="warn">Lesionat</Badge> : <Badge tone="ok">Disponible</Badge>}
                 </Link>
               </li>
             );

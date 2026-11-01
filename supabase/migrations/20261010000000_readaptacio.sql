@@ -199,3 +199,8 @@ grant select on public.ra_staff to authenticated;
 revoke truncate, trigger, references on public.ra_staff, public.ra_players, public.ra_injuries,
   public.ra_wellness_entries, public.ra_exercises, public.ra_sessions, public.ra_session_exercises,
   public.ra_field_work, public.ra_tests, public.ra_treatments from anon, authenticated;
+
+-- Foto, dorsal i equip (plantilla de ceeuropa.cat)
+alter table public.ra_players add column if not exists foto_url text;
+alter table public.ra_players add column if not exists dorsal smallint check (dorsal between 0 and 99);
+alter table public.ra_players add column if not exists equip text;
