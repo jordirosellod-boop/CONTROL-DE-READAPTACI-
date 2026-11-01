@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import type { Semafor, ZonaAcwr } from "@/lib/calc";
@@ -19,7 +20,7 @@ export function PageHeader({ title, subtitle, back, actions }: { title: ReactNod
           <h1 className="display text-3xl leading-tight text-heading sm:text-4xl">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
         </div>
-        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap gap-2 max-sm:w-full">{actions}</div>}
       </div>
     </header>
   );
@@ -135,9 +136,38 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">{children}</p>;
+export function Empty({ children, big }: { children: ReactNode; big?: boolean }) {
+  return (
+    <div className={cx("rounded-2xl border border-dashed border-border text-center text-sm text-muted", big ? "px-6 py-10" : "p-4")}>
+      {big && <Image src="/escut.png" alt="" width={64} height={64} className="mx-auto mb-3 h-16 w-16 object-contain opacity-80" />}
+      {children}
+    </div>
+  );
 }
+
+/** Avatar amb les inicials del jugador, amb els colors i les ratlles de l'escut. */
+export function Avatar({ nom, cognoms, size = "md" }: { nom: string; cognoms?: string | null; size?: "sm" | "md" | "lg" }) {
+  const inicials = `${nom.trim()[0] ?? ""}${(cognoms ?? "").trim()[0] ?? ""}`.toUpperCase();
+  const sizes = { sm: "h-9 w-9 text-sm", md: "h-12 w-12 text-lg", lg: "h-16 w-16 text-2xl" };
+  return (
+    <span aria-hidden className={cx("stripes display grid shrink-0 place-items-center rounded-full bg-brand text-brand-fg ring-2 ring-[#e0b36e]/70", sizes[size])}>
+      {inicials || "?"}
+    </span>
+  );
+}
+
+/** Barra horitzontal de valor (p. ex. wellness 15/25), amb to segons l'estat. */
+export function Meter({ value, max, tone = "accent", label }: { value: number; max: number; tone?: "ok" | "warn" | "danger" | "accent"; label: string }) {
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const tones = { ok: "bg-ok", warn: "bg-warn", danger: "bg-danger", accent: "bg-accent" };
+  return (
+    <div role="meter" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+      <div className={cx("h-full rounded-full", tones[tone])} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+export const SEMAFOR_TONE = { verd: "ok", groc: "warn", vermell: "danger", sense: "accent" } as const;
 
 const ACWR_ZONA = {
   baixa: { tone: "neutral", icon: "▽", label: "Càrrega baixa" },

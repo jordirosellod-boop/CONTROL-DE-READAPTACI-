@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { Card, Field, Input, PageHeader } from "@/components/ui";
-import { changePassword } from "@/lib/actions";
+import { Button, Card, Field, Input, PageHeader } from "@/components/ui";
+import { changePassword, logout } from "@/lib/actions";
 import { getDb } from "@/lib/data";
 
 export const metadata: Metadata = { title: "El meu compte" };
@@ -21,6 +21,14 @@ export default async function Compte() {
           </Field>
           <SubmitButton>Canviar contrasenya</SubmitButton>
         </ActionForm>
+      </Card>
+      <Card title="Sessió" className="mt-4 max-w-md">
+        <p className="mb-3 text-sm text-muted">Has entrat com a {email}.</p>
+        <form action={logout}>
+          <Button variant="secondary" className="w-full sm:w-auto">
+            Sortir de l&apos;app
+          </Button>
+        </form>
       </Card>
     </>
   );

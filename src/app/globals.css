@@ -150,3 +150,24 @@ textarea.input {
   fill: var(--muted);
   font-size: 12px;
 }
+
+/* Ratlles diagonals de l'escut (blau i blanc), molt subtils */
+.stripes {
+  background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.07) 0 18px, transparent 18px 44px);
+}
+
+/* Esquelet de càrrega */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.skeleton {
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, var(--surface-2) 0, var(--border) 50%, var(--surface-2) 100%) no-repeat;
+  background-size: 200px 100%;
+  background-color: var(--surface-2);
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

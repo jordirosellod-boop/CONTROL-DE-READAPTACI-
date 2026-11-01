@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FatigueCharts, LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
 import { ActionButton } from "@/components/forms";
-import { AcwrBadge, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
+import { AcwrBadge, Avatar, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
 import { deleteTest, deleteWellness } from "@/lib/actions";
 import { addDays, baselineOf, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
@@ -35,14 +35,15 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
       <PageHeader
         back={{ href: "/", label: "Panell" }}
         title={
-          <span className="flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-3">
+            <Avatar nom={player.nom} cognoms={player.cognoms} size="lg" />
             {player.nom} {player.cognoms}
             {player.arxivat && <Badge>Arxivat</Badge>}
           </span>
         }
         subtitle={[labelOf(POSICIONS, player.posicio), player.edat ? `${player.edat} anys` : null, `Cama ${labelOf(CAMES, player.cama_dominant).toLowerCase()}`].filter(Boolean).join(" · ")}
         actions={
-          <>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <LinkButton href={`/jugadors/${id}/editar`} variant="ghost">
               Editar fitxa
             </LinkButton>
@@ -53,7 +54,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
               + Tractament
             </LinkButton>
             <LinkButton href={`/jugadors/${id}/sessions/nova`}>+ Sessió</LinkButton>
-          </>
+          </div>
         }
       />
 

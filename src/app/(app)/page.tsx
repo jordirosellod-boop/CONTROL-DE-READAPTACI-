@@ -3,7 +3,7 @@ import Link from "next/link";
 import { addDays, fatigueMetrics, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { POSICIONS, labelOf } from "@/lib/constants";
 import { activeInjury, getDashboard } from "@/lib/data";
-import { AcwrBadge, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
+import { AcwrBadge, Avatar, Badge, Card, Meter, SEMAFOR_TONE, cx, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Panell" };
 
@@ -49,26 +49,37 @@ export default async function Dashboard() {
       />
 
       {players.length === 0 ? (
-        <Empty>
-          Encara no hi ha cap jugador. <Link href="/jugadors/nou" className="font-medium text-accent underline">Crea el primer jugador</Link> per començar.
+        <Empty big>
+          <p className="display text-xl text-heading">Benvinguda a Readaptació</p>
+          <p className="mt-1">Encara no hi ha cap jugador. Crea el primer per començar a registrar lesions, wellness i sessions.</p>
+          <LinkButton href="/jugadors/nou" className="mt-4">
+            + Crear el primer jugador
+          </LinkButton>
         </Empty>
       ) : (
         <>
           {/* Franja fosca tipus "marcador", com la de resultats de la web del club */}
-          <div className="mb-6 grid grid-cols-3 divide-x divide-white/25 rounded-2xl bg-navy px-2 py-4 text-center text-white">
+          <div className="stripes mb-6 grid grid-cols-3 divide-x divide-white/25 rounded-2xl bg-navy px-2 py-4 text-center text-white shadow-[0_6px_20px_rgba(11,27,77,0.25)]">
             <SummaryTile label="En readaptació" value={lesionats.length} />
             <SummaryTile label="Sense wellness avui" value={senseWellness.length} tone={senseWellness.length ? "warn" : undefined} />
             <SummaryTile label="Alertes" value={alertes.length} tone={alertes.length ? "danger" : undefined} />
           </div>
 
           {lesionats.length === 0 ? (
-            <Empty>Cap jugador amb lesió activa.</Empty>
+            <Empty big>Cap jugador amb lesió activa. Tothom disponible! 💪</Empty>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {lesionats.map((r) => (
-                <Card key={r.player.id} className="flex flex-col">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                <Card
+                  key={r.player.id}
+                  className={cx(
+                    "flex flex-col border-t-4 transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(11,27,77,0.12)]",
+                    { verd: "border-t-ok", groc: "border-t-warn", vermell: "border-t-danger", sense: "border-t-border" }[r.status],
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Avatar nom={r.player.nom} cognoms={r.player.cognoms} />
+                    <div className="min-w-0 flex-1">
                       <Link href={`/jugadors/${r.player.id}`} className="display block truncate text-2xl leading-tight text-heading hover:underline">
                         {r.player.nom} {r.player.cognoms}
                       </Link>
@@ -78,6 +89,12 @@ export default async function Dashboard() {
                     </div>
                     <SemaforBadge status={r.status} />
                   </div>
+
+                  {r.avui && (
+                    <div className="mt-3">
+                      <Meter value={wellnessScore(r.avui)} max={25} tone={SEMAFOR_TONE[r.status]} label="Wellness d'avui" />
+                    </div>
+                  )}
 
                   <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
                     <Metric label="Setmana" value={r.setmana!.setmana} sub={r.setmana!.referencia === "cirurgia" ? "post-IQ" : "post-lesió"} />
