@@ -41,7 +41,14 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
             {player.arxivat && <Badge>Arxivat</Badge>}
           </span>
         }
-        subtitle={[labelOf(POSICIONS, player.posicio), player.edat ? `${player.edat} anys` : null, `Cama ${labelOf(CAMES, player.cama_dominant).toLowerCase()}`].filter(Boolean).join(" · ")}
+        subtitle={[
+          player.equip,
+          player.posicio ? labelOf(POSICIONS, player.posicio) : null,
+          player.edat ? `${player.edat} anys` : null,
+          player.cama_dominant ? `Cama ${labelOf(CAMES, player.cama_dominant).toLowerCase()}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         actions={
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <LinkButton href={`/jugadors/${id}/editar`} variant="ghost">
