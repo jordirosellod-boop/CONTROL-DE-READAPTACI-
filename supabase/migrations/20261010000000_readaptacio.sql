@@ -207,3 +207,7 @@ alter table public.ra_players add column if not exists equip text;
 
 -- Foto del membre de l'equip per a la pantalla de benvinguda
 alter table public.ra_staff add column if not exists foto_url text;
+
+-- Camí de retorn al joc: fase actual (1–5) i data prevista d'alta
+alter table public.ra_injuries add column if not exists fase smallint check (fase between 1 and 5);
+alter table public.ra_injuries add column if not exists data_prevista date;

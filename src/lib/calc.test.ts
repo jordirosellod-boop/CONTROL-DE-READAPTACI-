@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  mapaDolor,
+  rtpCompteEnrere,
+  rtpProgress,
   acwrZone,
   fatigueMetrics,
   fatigueSeries,
@@ -186,5 +189,32 @@ describe("fatiga acumulada", () => {
     expect(fatiga.dies7).toBe(3);
     expect(son.canvi).toBe(0);
     expect(dolor.canvi!).toBeLessThan(0); // més dolor = pitjor
+  });
+});
+
+describe("camí de retorn al joc", () => {
+  it("progrés i compte enrere cap a l'alta prevista", () => {
+    const p = rtpProgress({ data_lesio: "2026-10-01", data_prevista: "2026-10-31" }, "2026-10-16");
+    expect(p).toEqual({ diesPassats: 15, diesTotals: 30, diesRestants: 15, pct: 50 });
+    expect(rtpCompteEnrere(15)).toBe("Falten 15 dies");
+    expect(rtpCompteEnrere(1)).toBe("Falta 1 dia");
+    expect(rtpCompteEnrere(0)).toBe("Alta prevista avui");
+    expect(rtpCompteEnrere(-3)).toBe("3 dies més del previst");
+    expect(rtpCompteEnrere(null)).toBeNull();
+  });
+  it("sense data prevista no inventa percentatges; passat de data no supera el 100%", () => {
+    expect(rtpProgress({ data_lesio: "2026-10-01", data_prevista: null }, "2026-10-10").pct).toBeNull();
+    expect(rtpProgress({ data_lesio: "2026-10-01", data_prevista: "2026-10-05" }, "2026-10-20").pct).toBe(100);
+  });
+});
+
+describe("mapa de dolor", () => {
+  it("compta dies i EVA màxima per zona dins la finestra", () => {
+    const e = (data: string, dolor_eva: number, dolor_zones: string[]) => ({ data, dolor_eva, dolor_zones });
+    const m = mapaDolor([e("2026-10-20", 6, ["genoll_e"]), e("2026-10-25", 3, ["genoll_e", "lumbar"]), e("2026-09-01", 9, ["peu_d"])], "2026-10-26");
+    expect(m).toEqual([
+      { zona: "genoll_e", dies: 2, maxEva: 6 },
+      { zona: "lumbar", dies: 1, maxEva: 3 },
+    ]);
   });
 });

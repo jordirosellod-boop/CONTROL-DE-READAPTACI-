@@ -390,3 +390,58 @@ export function wellnessTrend(entries: WellnessDay[], today: string): WellnessTr
     item("dolor_eva", (e) => e.dolor_eva, true),
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Camí de retorn al joc
+// ---------------------------------------------------------------------------
+
+export interface RtpProgress {
+  diesPassats: number;
+  diesTotals: number | null; // de la lesió a la data prevista d'alta
+  diesRestants: number | null; // negatiu si ja s'ha passat la data prevista
+  pct: number | null; // 0–100 del temps previst
+}
+
+/** Progrés en el temps cap a la data prevista d'alta (des de la data de la lesió). */
+export function rtpProgress(injury: { data_lesio: string; data_prevista: string | null }, today: string): RtpProgress {
+  const diesPassats = Math.max(0, daysBetween(injury.data_lesio, today));
+  if (!injury.data_prevista) return { diesPassats, diesTotals: null, diesRestants: null, pct: null };
+  const diesTotals = Math.max(1, daysBetween(injury.data_lesio, injury.data_prevista));
+  const diesRestants = daysBetween(today, injury.data_prevista);
+  return { diesPassats, diesTotals, diesRestants, pct: Math.min(100, Math.round((diesPassats / diesTotals) * 100)) };
+}
+
+/** Text curt del compte enrere cap a l'alta prevista. */
+export function rtpCompteEnrere(diesRestants: number | null): string | null {
+  if (diesRestants == null) return null;
+  if (diesRestants > 1) return `Falten ${diesRestants} dies`;
+  if (diesRestants === 1) return "Falta 1 dia";
+  if (diesRestants === 0) return "Alta prevista avui";
+  return `${-diesRestants} ${diesRestants === -1 ? "dia" : "dies"} més del previst`;
+}
+
+// ---------------------------------------------------------------------------
+// Mapa de dolor
+// ---------------------------------------------------------------------------
+
+export interface ZonaDolor {
+  zona: string;
+  dies: number; // dies amb aquesta zona marcada
+  maxEva: number; // EVA màxima d'aquests dies
+}
+
+/** Zones marcades al wellness dels últims `dies` dies, amb freqüència i EVA màxima. */
+export function mapaDolor(entries: { data: string; dolor_eva: number; dolor_zones: string[] }[], today: string, dies = 14): ZonaDolor[] {
+  const desde = addDays(today, -(dies - 1));
+  const map = new Map<string, ZonaDolor>();
+  for (const e of entries) {
+    if (e.data < desde || e.data > today) continue;
+    for (const z of e.dolor_zones ?? []) {
+      const prev = map.get(z) ?? { zona: z, dies: 0, maxEva: 0 };
+      prev.dies += 1;
+      prev.maxEva = Math.max(prev.maxEva, e.dolor_eva);
+      map.set(z, prev);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.maxEva - a.maxEva || b.dies - a.dies);
+}

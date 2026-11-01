@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, fatigueMetrics, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
-import { POSICIONS, labelOf } from "@/lib/constants";
+import { CountUp } from "@/components/count-up";
+import { addDays, fatigueMetrics, rtpCompteEnrere, rtpProgress, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
+import { FASES, POSICIONS, labelOf } from "@/lib/constants";
 import { activeInjury, getDashboard, getPerfil } from "@/lib/data";
 import { AcwrBadge, Avatar, Badge, Card, Meter, SEMAFOR_TONE, cx, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
 
@@ -27,6 +28,7 @@ export default async function Dashboard() {
       player: p,
       injury,
       setmana: injury ? treatmentWeek(injury, today) : null,
+      rtp: injury ? rtpProgress(injury, today) : null,
       sessionsFetes: injury ? pSessions.filter((s) => s.completada).length : null,
       avui,
       status: wellnessStatus(avui),
@@ -99,10 +101,25 @@ export default async function Dashboard() {
                     <SemaforBadge status={r.status} />
                   </div>
 
-                  {r.avui && (
-                    <div className="mt-3">
-                      <Meter value={wellnessScore(r.avui)} max={25} tone={SEMAFOR_TONE[r.status]} label="Wellness d'avui" />
+                  {/* Fase del retorn al joc i compte enrere cap a l'alta */}
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                    <span className="display rounded-full bg-[#e0b36e]/20 px-2.5 py-1 text-[#8a6420] dark:text-[#e0b36e]">
+                      Fase {r.injury!.fase ?? 1} · {FASES[(r.injury!.fase ?? 1) - 1].curt}
+                    </span>
+                    {r.rtp?.diesRestants != null && (
+                      <span className={cx("font-medium", r.rtp.diesRestants < 0 ? "text-warn" : "text-muted")}>{rtpCompteEnrere(r.rtp.diesRestants)}</span>
+                    )}
+                  </div>
+                  {r.rtp?.pct != null ? (
+                    <div className="mt-2">
+                      <Meter value={r.rtp.pct} max={100} tone={r.rtp.diesRestants! < 0 ? "warn" : "accent"} label="Progrés cap a l'alta prevista" />
                     </div>
+                  ) : (
+                    r.avui && (
+                      <div className="mt-2">
+                        <Meter value={wellnessScore(r.avui)} max={25} tone={SEMAFOR_TONE[r.status]} label="Wellness d'avui" />
+                      </div>
+                    )
                   )}
 
                   <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -187,7 +204,9 @@ function SummaryTile({ label, value, tone }: { label: string; value: number; ton
   const toneClass = tone === "danger" ? "text-[#ff8a80]" : tone === "warn" ? "text-[#ffd166]" : "";
   return (
     <div className="px-2">
-      <div className={`display text-4xl tabular-nums sm:text-5xl ${toneClass}`}>{value}</div>
+      <div className={`display text-4xl tabular-nums sm:text-5xl ${toneClass}`}>
+        <CountUp value={value} />
+      </div>
       <div className="display mt-1 text-xs text-white/80 sm:text-sm">{label}</div>
     </div>
   );

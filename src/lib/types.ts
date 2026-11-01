@@ -35,6 +35,8 @@ export interface Injury {
   data_cirurgia: string | null;
   data_alta: string | null;
   activa: boolean;
+  fase: number | null;
+  data_prevista: string | null;
   notes: string | null;
 }
 

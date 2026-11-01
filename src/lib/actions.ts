@@ -124,6 +124,8 @@ export async function saveInjury(playerId: string, injuryId: string | null, _: F
     data_lesio: str(fd, "data_lesio"),
     data_cirurgia: str(fd, "data_cirurgia"),
     data_alta: str(fd, "data_alta"),
+    fase: int(fd, "fase"),
+    data_prevista: str(fd, "data_prevista"),
     notes: str(fd, "notes"),
   };
   if (!row.diagnostic || !row.data_lesio) return { error: "El diagnòstic i la data de la lesió són obligatoris." };
@@ -134,6 +136,17 @@ export async function saveInjury(playerId: string, injuryId: string | null, _: F
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
   redirect(`${playerPath(playerId)}?tab=lesions`);
+}
+
+/** Canvia la fase del camí de retorn al joc (des de la línia de temps de la fitxa). */
+export async function setInjuryFase(playerId: string, injuryId: string, fase: number): Promise<FormState> {
+  const supabase = await authed();
+  if (!(fase >= 1 && fase <= 5)) return { error: "Fase no vàlida." };
+  const { error } = await supabase.from("ra_injuries").update({ fase }).eq("id", injuryId);
+  if (error) return { error: dbError(error) };
+  revalidatePath("/");
+  revalidatePath(playerPath(playerId));
+  return ok("Fase actualitzada");
 }
 
 export async function deleteInjury(playerId: string, injuryId: string): Promise<FormState> {

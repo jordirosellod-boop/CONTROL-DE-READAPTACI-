@@ -52,7 +52,7 @@ export type ButtonVariant = keyof typeof buttonStyles;
 export function buttonClass(variant: ButtonVariant = "primary", size: "md" | "sm" = "md") {
   return cx(
     // Botons "píndola" en majúscules, com a la web del club
-    "display inline-flex items-center justify-center gap-1.5 rounded-full transition disabled:opacity-50",
+    "display inline-flex items-center justify-center gap-1.5 rounded-full transition active:scale-[0.97] disabled:opacity-50",
     size === "md" ? "min-h-11 px-5 text-[15px]" : "min-h-9 px-4 text-sm",
     buttonStyles[variant],
   );

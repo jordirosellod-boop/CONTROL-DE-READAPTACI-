@@ -1,7 +1,7 @@
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Field, Input, Select, Textarea } from "@/components/ui";
 import { saveInjury } from "@/lib/actions";
-import { CATEGORIES_LESIO, COSTATS_LESIO } from "@/lib/constants";
+import { CATEGORIES_LESIO, COSTATS_LESIO, FASES } from "@/lib/constants";
 import type { Injury } from "@/lib/types";
 
 export function InjuryForm({ playerId, injury, today }: { playerId: string; injury?: Injury; today: string }) {
@@ -30,6 +30,14 @@ export function InjuryForm({ playerId, injury, today }: { playerId: string; inju
         </Field>
         <Field label="Data d'alta" hint="Deixa-ho buit mentre la lesió estigui activa.">
           <Input name="data_alta" type="date" defaultValue={injury?.data_alta ?? ""} />
+        </Field>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Fase actual del retorn al joc">
+          <Select name="fase" options={FASES.map((f) => ({ value: String(f.n), label: `${f.n}. ${f.nom}` }))} placeholder="—" defaultValue={injury?.fase ? String(injury.fase) : "1"} />
+        </Field>
+        <Field label="Data prevista d'alta" hint="Opcional. Activa el compte enrere i la barra de progrés.">
+          <Input name="data_prevista" type="date" defaultValue={injury?.data_prevista ?? ""} />
         </Field>
       </div>
       <Field label="Notes">

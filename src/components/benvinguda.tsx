@@ -59,7 +59,7 @@ export function Benvinguda({ nom, foto, enReadaptacio }: { nom: string; foto: st
       role="dialog"
       aria-label={`${text.salutacio}, ${nom}`}
       onClick={tancar}
-      className={`benvinguda fixed inset-0 z-50 cursor-pointer overflow-hidden bg-navy text-white transition-opacity duration-500 ${sortint ? "opacity-0" : "opacity-100"}`}
+      className={`benvinguda fixed inset-0 z-50 print:hidden cursor-pointer overflow-hidden bg-navy text-white transition-opacity duration-500 ${sortint ? "opacity-0" : "opacity-100"}`}
     >
       {foto ? (
         // eslint-disable-next-line @next/next/no-img-element

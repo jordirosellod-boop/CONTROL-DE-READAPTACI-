@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { BodyMap } from "@/components/body-map";
+import { RtpTimeline } from "@/components/rtp";
 import { FatigueCharts, LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
 import { ActionButton } from "@/components/forms";
-import { AcwrBadge, Avatar, Badge, Card, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
-import { deleteTest, deleteWellness } from "@/lib/actions";
-import { addDays, baselineOf, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
+import { AcwrBadge, Avatar, Badge, Card, Meter, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
+import { deleteTest, deleteWellness, setInjuryFase } from "@/lib/actions";
+import { addDays, baselineOf, mapaDolor, rtpCompteEnrere, rtpProgress, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
 import { activeInjury, getPlayerBundle, type SessionWithField } from "@/lib/data";
 import type { Injury, PhysicalTest, Treatment, WellnessEntry } from "@/lib/types";
@@ -60,7 +62,12 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
             <LinkButton href={`/jugadors/${id}/tractaments/nou`} variant="secondary">
               + Tractament
             </LinkButton>
-            <LinkButton href={`/jugadors/${id}/sessions/nova`}>+ Sessió</LinkButton>
+            <LinkButton href={`/jugadors/${id}/informe`} variant="secondary">
+              Informe
+            </LinkButton>
+            <LinkButton href={`/jugadors/${id}/sessions/nova`} className="max-sm:col-span-2">
+              + Sessió
+            </LinkButton>
           </div>
         }
       />
@@ -101,6 +108,8 @@ function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerI
   const fatiga = fatigueMetrics(sessions, today);
   const summary = summarizeTests(tests);
   const last30 = wellness.filter((w) => w.data > addDays(today, -30)).slice().reverse();
+  const rtp = injury ? rtpProgress(injury, today) : null;
+  const dolor = mapaDolor(wellness, today);
 
   return (
     <div className="space-y-4">
@@ -130,6 +139,35 @@ function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerI
           {avui ? <WellnessDetail w={avui} /> : <Empty>Encara no s&apos;ha registrat el wellness d&apos;avui.</Empty>}
         </Card>
       </div>
+
+      {injury && (
+        <Card
+          title="Camí de retorn al joc"
+          actions={rtp?.diesRestants != null && <Badge tone={rtp.diesRestants < 0 ? "warn" : "accent"}>{rtpCompteEnrere(rtp.diesRestants)}</Badge>}
+        >
+          <RtpTimeline fase={injury.fase ?? 1} accions={[1, 2, 3, 4, 5].map((f) => setInjuryFase.bind(null, playerId, injury.id, f))} />
+          {rtp?.pct != null ? (
+            <div className="mt-4">
+              <div className="mb-1 flex justify-between text-xs text-muted">
+                <span>Lesió · {formatDate(injury.data_lesio, { day: "numeric", month: "short" })}</span>
+                <span>
+                  Dia {rtp.diesPassats} de {rtp.diesTotals} · {rtp.pct}%
+                </span>
+                <span>Alta prevista · {formatDate(injury.data_prevista, { day: "numeric", month: "short" })}</span>
+              </div>
+              <Meter value={rtp.pct} max={100} tone={rtp.diesRestants! < 0 ? "warn" : "accent"} label="Temps transcorregut cap a l'alta prevista" />
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-muted">
+              Afegeix una <Link className="underline" href={`/jugadors/${playerId}/lesions/${injury.id}`}>data prevista d&apos;alta</Link> per veure el compte enrere.
+            </p>
+          )}
+        </Card>
+      )}
+
+      <Card title="Mapa de dolor · 14 dies">
+        {dolor.length ? <BodyMap zones={dolor} /> : <Empty>Cap zona de dolor marcada al wellness les últimes 2 setmanes. 👍</Empty>}
+      </Card>
 
       <Card title="Evolució del wellness (30 dies)">
         {last30.length ? <WellnessCharts data={last30.map((w) => ({ data: w.data, puntuacio: wellnessScore(w), dolor: w.dolor_eva, son_hores: w.son_hores }))} /> : <Empty>Sense registres.</Empty>}
@@ -413,6 +451,9 @@ function TractamentTab({ playerId, treatments, ready, injury }: { playerId: stri
   const delProces = injury ? treatments.filter((t) => t.data >= injury.data_lesio) : treatments;
   const minuts = delProces.reduce((acc, t) => acc + (t.durada_min ?? 0), 0);
   const ambDolor = delProces.filter((t) => t.dolor_abans != null && t.dolor_despres != null);
+  const comptaZones = new Map<string, number>();
+  for (const t of delProces) for (const z of t.zones) comptaZones.set(z, (comptaZones.get(z) ?? 0) + 1);
+  const zonesTractades = [...comptaZones.entries()].map(([zona, dies]) => ({ zona, dies, maxEva: 0 })).sort((a, b) => b.dies - a.dies);
   const millora = ambDolor.length ? ambDolor.reduce((acc, t) => acc + (t.dolor_abans! - t.dolor_despres!), 0) / ambDolor.length : null;
   return (
     <div className="space-y-4">
@@ -425,6 +466,11 @@ function TractamentTab({ playerId, treatments, ready, injury }: { playerId: stri
           sub="mitjana EVA abans → després"
         />
       </div>
+      {zonesTractades.length > 0 && (
+        <Card title="Zones tractades">
+          <BodyMap zones={zonesTractades} tone="tractament" />
+        </Card>
+      )}
       <Card title="Historial" actions={<LinkButton href={`/jugadors/${playerId}/tractaments/nou`} size="sm">+ Nou</LinkButton>}>
         {treatments.length === 0 ? (
           <Empty>Encara no hi ha cap tractament registrat.</Empty>

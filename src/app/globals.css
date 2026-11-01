@@ -185,3 +185,20 @@ textarea.input {
 @media (prefers-reduced-motion: reduce) {
   .benvinguda-foto, .benvinguda-entra { animation: none; opacity: 1; transform: none; }
 }
+
+/* Impressió / PDF de l'informe */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  :root { color-scheme: light; }
+  body { background: #fff !important; padding: 0 !important; }
+  .print-avoid { break-inside: avoid; }
+  /* Les ombres de les targetes "s'escapen" a la pàgina anterior en partir pàgines */
+  section, header { box-shadow: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media print {
+  /* Files de dues targetes: blocs indivisibles perquè no es parteixin entre pàgines */
+  .print-row { display: block !important; }
+  .print-row > * { display: inline-block; width: calc(50% - 6px); vertical-align: top; margin-right: 8px; break-inside: avoid; }
+  .print-row > *:last-child { margin-right: 0; }
+}

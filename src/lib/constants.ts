@@ -126,6 +126,15 @@ export const TECNIQUES: { value: string; label: string; grup: string }[] = [
   { value: "kinesiotape", label: "Kinesiotape", grup: "Altres" },
 ];
 
+/** Fases del camí de retorn al joc (return to play). */
+export const FASES = [
+  { n: 1, nom: "Protecció", curt: "Protecció", desc: "Control del dolor i protecció del teixit" },
+  { n: 2, nom: "Recuperació funcional", curt: "Recuperació", desc: "Mobilitat, activació i força bàsica" },
+  { n: 3, nom: "Readaptació", curt: "Readaptació", desc: "Força, carrera i pliometria progressives" },
+  { n: 4, nom: "Reentrenament", curt: "Reentrenament", desc: "Treball específic i amb el grup" },
+  { n: 5, nom: "Retorn a la competició", curt: "Competició", desc: "Alta mèdica i retorn al partit" },
+] as const;
+
 export const WELLNESS_ITEMS = [
   { key: "son_qualitat", label: "Qualitat del son", baix: "Molt dolenta", alt: "Excel·lent" },
   { key: "fatiga", label: "Fatiga", baix: "Molt fatigat", alt: "Molt fresc" },
