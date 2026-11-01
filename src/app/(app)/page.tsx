@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { addDays, fatigueMetrics, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { POSICIONS, labelOf } from "@/lib/constants";
-import { activeInjury, getDashboard } from "@/lib/data";
+import { activeInjury, getDashboard, getPerfil } from "@/lib/data";
 import { AcwrBadge, Avatar, Badge, Card, Meter, SEMAFOR_TONE, cx, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Panell" };
 
 export default async function Dashboard() {
   const today = todayISO();
-  const { players, wellness, sessions, tests } = await getDashboard(today, addDays(today, -6));
+  const [{ players, wellness, sessions, tests }, perfil] = await Promise.all([getDashboard(today, addDays(today, -6)), getPerfil()]);
+  const hora = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
+  const salutacio = hora >= 6 && hora < 14 ? "Bon dia" : hora >= 14 && hora < 21 ? "Bona tarda" : "Bona nit";
 
   const rows = players.map((p) => {
     const injury = activeInjury(p.injuries);
@@ -44,7 +46,14 @@ export default async function Dashboard() {
     <>
       <PageHeader
         title="Panell"
-        subtitle={formatDate(today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        subtitle={
+          <>
+            <span className="font-medium text-foreground">
+              {salutacio}, {perfil.nom}!
+            </span>{" "}
+            · {formatDate(today, { weekday: "long", day: "numeric", month: "long" })}
+          </>
+        }
         actions={<LinkButton href="/jugadors/nou">+ Nou jugador</LinkButton>}
       />
 

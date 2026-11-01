@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Field, Input } from "@/components/ui";
 import { login } from "@/lib/actions";
 
 export function LoginForm({ next }: { next: string }) {
+  // En tornar a entrar, que es torni a veure la salutació
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("ra-benvinguda");
+    } catch {}
+  }, []);
   return (
     <ActionForm action={login}>
       <input type="hidden" name="next" value={next} />

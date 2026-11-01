@@ -204,3 +204,6 @@ revoke truncate, trigger, references on public.ra_staff, public.ra_players, publ
 alter table public.ra_players add column if not exists foto_url text;
 alter table public.ra_players add column if not exists dorsal smallint check (dorsal between 0 and 99);
 alter table public.ra_players add column if not exists equip text;
+
+-- Foto del membre de l'equip per a la pantalla de benvinguda
+alter table public.ra_staff add column if not exists foto_url text;

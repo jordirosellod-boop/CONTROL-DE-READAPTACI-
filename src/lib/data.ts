@@ -112,6 +112,21 @@ export async function getDashboard(today: string, since: string) {
   };
 }
 
+/** Nom i foto de qui ha entrat (llista de l'equip ra_staff). */
+export const getPerfil = cache(async () => {
+  const { supabase, email } = await getDb();
+  const { data } = await supabase.from("ra_staff").select("nom, foto_url").eq("email", email.toLowerCase()).maybeSingle();
+  const nom = (data?.nom as string | null) || email.split("@")[0];
+  return { nom, foto: (data?.foto_url as string | null) ?? null, email };
+});
+
+/** Nombre de jugadors amb una lesió activa (no arxivats). */
+export async function countEnReadaptacio() {
+  const { supabase } = await getDb();
+  const { data } = await supabase.from("ra_injuries").select("player_id, ra_players!inner(arxivat)").is("data_alta", null).eq("ra_players.arxivat", false);
+  return new Set((data ?? []).map((r) => r.player_id as string)).size;
+}
+
 /** Lesió activa (la més recent sense alta). */
 export function activeInjury(injuries: Injury[]): Injury | null {
   return [...injuries].filter((i) => i.activa).sort((a, b) => b.data_lesio.localeCompare(a.data_lesio))[0] ?? null;

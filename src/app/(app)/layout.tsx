@@ -1,13 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Benvinguda } from "@/components/benvinguda";
 import { BottomNav, TopNav } from "@/components/nav";
 import { logout } from "@/lib/actions";
-import { getDb } from "@/lib/data";
+import { countEnReadaptacio, getDb, getPerfil } from "@/lib/data";
 
 const pill = "display inline-flex min-h-9 items-center rounded-full border-2 border-brand-fg/90 px-4 text-sm text-brand-fg hover:bg-brand-fg hover:text-brand";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { email } = await getDb();
+  const [perfil, enReadaptacio] = await Promise.all([getPerfil(), countEnReadaptacio()]);
   return (
     <div className="flex min-h-dvh flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-0">
       <header className="stripes sticky top-0 z-20 bg-brand pt-[env(safe-area-inset-top)] text-brand-fg shadow-[0_2px_12px_rgba(11,27,77,0.25)]">
@@ -43,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </footer>
       <BottomNav />
+      <Benvinguda nom={perfil.nom} foto={perfil.foto} enReadaptacio={enReadaptacio} />
     </div>
   );
 }

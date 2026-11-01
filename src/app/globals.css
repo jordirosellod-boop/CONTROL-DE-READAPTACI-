@@ -174,3 +174,14 @@ textarea.input {
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
+
+/* Pantalla de benvinguda */
+@keyframes benvinguda-zoom { from { transform: scale(1.12); } to { transform: scale(1); } }
+@keyframes benvinguda-puja { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes benvinguda-barra { from { width: 0; } to { width: 100%; } }
+.benvinguda-foto { animation: benvinguda-zoom 5s ease-out both; }
+.benvinguda-entra { opacity: 0; animation: benvinguda-puja 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.benvinguda-progres { width: 0; animation: benvinguda-barra linear forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .benvinguda-foto, .benvinguda-entra { animation: none; opacity: 1; transform: none; }
+}
