@@ -40,6 +40,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="display text-xl">CE Europa</div>
             <div className="text-sm text-brand-fg/80">Àrea de readaptació · Ús intern</div>
           </div>
+          <Link href="/compte" className="ml-auto text-right text-sm text-brand-fg/85 underline-offset-2 hover:underline">
+            <span className="block truncate">{email}</span>
+            <span className="block">El meu compte</span>
+          </Link>
         </div>
       </footer>
     </div>

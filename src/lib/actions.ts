@@ -38,6 +38,17 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
   redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
 }
 
+export async function changePassword(_: FormState, fd: FormData): Promise<FormState> {
+  const supabase = await authed();
+  const nova = (fd.get("password") as string) ?? "";
+  const repetida = (fd.get("password2") as string) ?? "";
+  if (nova.length < 8) return { error: "La contrasenya ha de tenir almenys 8 caràcters." };
+  if (nova !== repetida) return { error: "Les dues contrasenyes no coincideixen." };
+  const { error } = await supabase.auth.updateUser({ password: nova });
+  if (error) return { error: `No s'ha pogut canviar: ${error.message}` };
+  return ok("Contrasenya canviada. La propera vegada entra amb la nova.");
+}
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
