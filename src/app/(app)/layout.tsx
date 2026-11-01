@@ -9,7 +9,7 @@ const pill = "display inline-flex min-h-9 items-center rounded-full border-2 bor
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { email } = await getDb();
   return (
-    <div className="flex min-h-screen flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-0">
+    <div className="flex min-h-dvh flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-0">
       <header className="stripes sticky top-0 z-20 bg-brand pt-[env(safe-area-inset-top)] text-brand-fg shadow-[0_2px_12px_rgba(11,27,77,0.25)]">
         <nav className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
           {/* L'escut sobresurt de la barra, com a la web del club */}

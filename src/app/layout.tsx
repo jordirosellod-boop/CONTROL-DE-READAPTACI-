@@ -24,10 +24,13 @@ export const metadata: Metadata = {
   title: { default: "Control de Readaptació", template: "%s · Readaptació" },
   description: "Seguiment de jugadors lesionats: wellness, sessions, treball de camp i tests físics.",
   icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "Readaptació", statusBarStyle: "default" },
+  // black-translucent: l'app ocupa tota la pantalla i la barra blava passa per sota de l'hora
+  appleWebApp: { capable: true, title: "Readaptació", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
+  // Ocupa tota la pantalla (també la zona de l'hora i la "notch"); els marges segurs es fan amb env(safe-area-inset-*)
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#0a2ea0" },
     { media: "(prefers-color-scheme: dark)", color: "#0a2ea0" },

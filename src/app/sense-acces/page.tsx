@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Sense accés" };
 
 export default function SenseAcces() {
   return (
-    <main className="grid min-h-screen place-items-center stripes bg-brand px-4 text-center text-brand-fg">
+    <main className="stripes grid min-h-dvh place-items-center bg-brand px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-center text-brand-fg">
       <div className="max-w-sm">
         <Image src="/escut.png" alt="Escut CE Europa" width={96} height={96} className="mx-auto mb-4 h-24 w-24 object-contain" />
         <h1 className="display text-3xl">Sense accés</h1>

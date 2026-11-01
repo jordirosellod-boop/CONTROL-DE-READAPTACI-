@@ -114,6 +114,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* Mòbil en horitzontal: que la "notch" no tapi res pels costats */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Titulars a l'estil de la web del club: estrets, en majúscules i blaus */
