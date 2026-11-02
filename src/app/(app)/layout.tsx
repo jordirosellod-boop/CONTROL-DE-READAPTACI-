@@ -1,15 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Benvinguda } from "@/components/benvinguda";
+import { Suspense } from "react";
 import { BottomNav, TopNav } from "@/components/nav";
+import { PullToRefresh } from "@/components/gestures";
+import { Connexio } from "@/components/pwa";
+import { QuickActions } from "@/components/quick-actions";
+import { Toaster } from "@/components/toast";
 import { logout } from "@/lib/actions";
-import { countEnReadaptacio, getDb, getPerfil } from "@/lib/data";
+import { countEnReadaptacio, getDb, getPerfil, getPlayersLite } from "@/lib/data";
 
 const pill = "display inline-flex min-h-9 items-center rounded-full border-2 border-brand-fg/90 px-4 text-sm text-brand-fg hover:bg-brand-fg hover:text-brand";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { email } = await getDb();
-  const [perfil, enReadaptacio] = await Promise.all([getPerfil(), countEnReadaptacio()]);
+  const [perfil, enReadaptacio, jugadors] = await Promise.all([getPerfil(), countEnReadaptacio(), getPlayersLite()]);
   return (
     <div className="flex min-h-dvh flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-0 print:pb-0">
       <header className="stripes sticky top-0 z-20 print:hidden bg-brand pt-[env(safe-area-inset-top)] text-brand-fg shadow-[0_2px_12px_rgba(11,27,77,0.25)]">
@@ -30,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </nav>
       </header>
+      <Connexio />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-7 pb-10 sm:pt-9 print:max-w-none print:p-0">{children}</main>
       <footer className="stripes hidden bg-brand text-brand-fg sm:block print:hidden">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-6">
@@ -45,6 +51,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </footer>
       <BottomNav />
+      <QuickActions jugadors={jugadors} />
+      <PullToRefresh />
+      <Suspense>
+        <Toaster />
+      </Suspense>
       <Benvinguda nom={perfil.nom} foto={perfil.foto} enReadaptacio={enReadaptacio} />
     </div>
   );

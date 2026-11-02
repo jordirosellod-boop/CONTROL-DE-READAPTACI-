@@ -120,6 +120,15 @@ export const getPerfil = cache(async () => {
   return { nom, foto: (data?.foto_url as string | null) ?? null, email };
 });
 
+export type JugadorLite = Pick<Player, "id" | "nom" | "cognoms" | "foto_url" | "dorsal" | "posicio" | "equip">;
+
+/** Llista lleugera de jugadors actius (per al cercador i les accions ràpides). */
+export async function getPlayersLite(): Promise<JugadorLite[]> {
+  const { supabase } = await getDb();
+  const { data } = await supabase.from("ra_players").select("id, nom, cognoms, foto_url, dorsal, posicio, equip").eq("arxivat", false).order("nom");
+  return (data ?? []) as JugadorLite[];
+}
+
 /** Nombre de jugadors amb una lesió activa (no arxivats). */
 export async function countEnReadaptacio() {
   const { supabase } = await getDb();

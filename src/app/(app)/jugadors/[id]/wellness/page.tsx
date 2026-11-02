@@ -24,7 +24,12 @@ export default async function WellnessPage({ params, searchParams }: PageProps<"
         back={tornar === "dashboard" ? { href: "/", label: "Panell" } : { href: `/jugadors/${id}?tab=wellness`, label: "Fitxa" }}
       />
       {/* key: reinicia el formulari en canviar de dia */}
-      <ActionForm key={date} action={saveWellness.bind(null, id)} className="max-w-2xl">
+      <ActionForm
+        key={date}
+        action={saveWellness.bind(null, id)}
+        className="max-w-2xl"
+        offline={{ tipus: "wellness", playerId: id, despres: tornar === "dashboard" ? "/" : `/jugadors/${id}?tab=wellness` }}
+      >
         <input type="hidden" name="tornar" value={tornar} />
         <Card>
           <div className="space-y-5">

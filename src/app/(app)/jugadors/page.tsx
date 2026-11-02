@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Avatar, Badge, Empty, LinkButton, PageHeader } from "@/components/ui";
+import { Empty, LinkButton, PageHeader } from "@/components/ui";
 import { formatDate } from "@/lib/calc";
 import { CAMES, POSICIONS, labelOf } from "@/lib/constants";
 import { activeInjury, getDb } from "@/lib/data";
 import type { Injury, Player } from "@/lib/types";
+import { LlistaJugadors } from "./llista";
 
 export const metadata: Metadata = { title: "Jugadors" };
 
@@ -32,33 +32,22 @@ export default async function Jugadors({ searchParams }: PageProps<"/jugadors">)
       {players.length === 0 ? (
         <Empty big>{showArchived ? "No hi ha jugadors arxivats." : "Encara no hi ha jugadors. Toca «+ Nou jugador» per crear-ne un."}</Empty>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
-          {players.map((p) => {
+        <LlistaJugadors
+          files={players.map((p) => {
             const inj = activeInjury(p.injuries);
-            return (
-              <li key={p.id}>
-                <Link href={`/jugadors/${p.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-                  <Avatar nom={p.nom} cognoms={p.cognoms} foto={p.foto_url} dorsal={p.dorsal} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">
-                      {p.nom} {p.cognoms}
-                    </div>
-                    <div className="truncate text-sm text-muted">
-                      {[p.equip, labelOf(POSICIONS, p.posicio), p.edat ? `${p.edat} anys` : null].filter((x) => x && x !== "—").join(" · ") ||
-                        `Cama ${labelOf(CAMES, p.cama_dominant).toLowerCase()}`}
-                    </div>
-                    {inj && (
-                      <div className="mt-0.5 truncate text-xs font-medium text-warn">
-                        ▲ {inj.diagnostic} · des del {formatDate(inj.data_lesio, { day: "numeric", month: "short" })}
-                      </div>
-                    )}
-                  </div>
-                  {inj ? <Badge tone="warn">Lesionat</Badge> : <Badge tone="ok">Disponible</Badge>}
-                </Link>
-              </li>
-            );
+            return {
+              id: p.id,
+              nom: p.nom,
+              cognoms: p.cognoms,
+              foto_url: p.foto_url,
+              dorsal: p.dorsal,
+              subtitol:
+                [p.equip, labelOf(POSICIONS, p.posicio), p.edat ? `${p.edat} anys` : null].filter((x) => x && x !== "—").join(" · ") ||
+                `Cama ${labelOf(CAMES, p.cama_dominant).toLowerCase()}`,
+              lesio: inj ? `${inj.diagnostic} · des del ${formatDate(inj.data_lesio, { day: "numeric", month: "short" })}` : null,
+            };
           })}
-        </ul>
+        />
       )}
     </>
   );

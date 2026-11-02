@@ -1,7 +1,10 @@
 "use client";
 
-import { createContext, use, useActionState, useState, useTransition, type ReactNode } from "react";
+import { createContext, use, useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { afegeixACua, campsDe } from "@/lib/cua";
+import { toast } from "./toast";
 import { Button, cx, type ButtonVariant } from "./ui";
 import type { FormState } from "@/lib/form";
 
@@ -14,9 +17,27 @@ const PendingContext = createContext<boolean | null>(null);
  * S'envia via onSubmit (i no amb la prop `action`) perquè React no buidi els
  * camps quan hi ha un error; només es reinicia si `resetOnSuccess`.
  */
-export function ActionForm({ action, children, className, resetOnSuccess }: { action: Action; children: ReactNode; className?: string; resetOnSuccess?: boolean }) {
+export function ActionForm({
+  action,
+  children,
+  className,
+  resetOnSuccess,
+  offline,
+}: {
+  action: Action;
+  children: ReactNode;
+  className?: string;
+  resetOnSuccess?: boolean;
+  /** Si no hi ha connexió, el registre es desa al mòbil i s'envia més tard. */
+  offline?: { tipus: "wellness"; playerId: string; despres: string };
+}) {
+  const router = useRouter();
   const [state, formAction] = useActionState(action, undefined);
   const [pending, startTransition] = useTransition();
+  // Els missatges d'èxit surten com a avís flotant
+  useEffect(() => {
+    if (state?.ok) toast(state.ok);
+  }, [state]);
   return (
     <form
       className={cx("space-y-4", className)}
@@ -24,17 +45,17 @@ export function ActionForm({ action, children, className, resetOnSuccess }: { ac
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
+        if (offline && !navigator.onLine) {
+          afegeixACua({ tipus: offline.tipus, playerId: offline.playerId, camps: campsDe(fd) });
+          router.push(`${offline.despres}${offline.despres.includes("?") ? "&" : "?"}ok=pendent-enviar`);
+          return;
+        }
         startTransition(() => formAction(fd));
       }}
     >
       {state?.error && (
         <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
           {state.error}
-        </p>
-      )}
-      {state?.ok && (
-        <p role="status" className="rounded-xl bg-ok-soft px-3 py-2 text-sm text-ok">
-          {state.ok}
         </p>
       )}
       <PendingContext value={pending}>{children}</PendingContext>
@@ -83,6 +104,7 @@ export function ActionButton({
           try {
             const res = (await action()) as FormState;
             if (res?.error) setError(res.error);
+            else if (res?.ok) toast(res.ok);
           } finally {
             setPending(false);
           }

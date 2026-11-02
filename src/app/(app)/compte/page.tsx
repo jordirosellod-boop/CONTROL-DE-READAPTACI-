@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Button, Card, Field, Input, PageHeader } from "@/components/ui";
 import { changePassword, logout } from "@/lib/actions";
 import { getDb } from "@/lib/data";
+import { Avisos } from "./avisos";
+import { TriaTema } from "./tema";
 
 export const metadata: Metadata = { title: "El meu compte" };
 
 export default async function Compte() {
   const { email } = await getDb();
+  const tema = (await cookies()).get("tema")?.value ?? "auto";
   return (
     <>
       <PageHeader title="El meu compte" subtitle={email} />
+      <Card title="Aparença" className="mb-4 max-w-md">
+        <TriaTema inicial={tema} />
+      </Card>
+      <Card title="Avisos al mòbil" className="mb-4 max-w-md">
+        <Avisos />
+      </Card>
       <Card title="Canviar la contrasenya" className="max-w-md">
         <ActionForm action={changePassword} resetOnSuccess>
           <Field label="Contrasenya nova" hint="Almenys 8 caràcters.">

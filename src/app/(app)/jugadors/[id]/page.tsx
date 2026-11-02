@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { BodyMap } from "@/components/body-map";
+import { SwipeRow, SwipeTabs } from "@/components/gestures";
 import { PlayerHero } from "@/components/player-hero";
 import { RtpTimeline } from "@/components/rtp";
 import { FatigueCharts, LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
 import { ActionButton } from "@/components/forms";
 import { AcwrBadge, Badge, Card, Meter, Empty, LinkButton, SemaforBadge, Stat, cx } from "@/components/ui";
-import { deleteTest, deleteWellness, setInjuryFase } from "@/lib/actions";
+import { deleteSession, deleteTest, deleteTreatment, deleteWellness, setInjuryFase } from "@/lib/actions";
 import { addDays, baselineOf, mapaDolor, rtpCompteEnrere, rtpProgress, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
 import { activeInjury, getPlayerBundle, type SessionWithField } from "@/lib/data";
@@ -33,6 +34,8 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
   const procSessions = injury ? sessions.filter((s) => s.data >= injury.data_lesio) : sessions;
   const procTests = injury ? tests.filter((t) => t.data >= injury.data_lesio || t.es_baseline) : tests;
 
+  const tabIdx = TABS.findIndex((t) => t.key === tab);
+  const tabHref = (i: number) => (i >= 0 && i < TABS.length ? `/jugadors/${id}?tab=${TABS[i].key}` : null);
   return (
     <>
       <Link href="/" className="mb-3 inline-block text-sm text-muted hover:text-foreground">
@@ -88,13 +91,15 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
         </div>
       </nav>
 
-      {tab === "resum" && <Resum playerId={id} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
-      {tab === "fatiga" && <FatigaTab sessions={sessions} wellness={wellness} today={today} />}
-      {tab === "wellness" && <WellnessTab playerId={id} wellness={wellness} />}
-      {tab === "sessions" && <SessionsTab playerId={id} sessions={sessions} today={today} />}
-      {tab === "tractament" && <TractamentTab playerId={id} treatments={treatments} ready={treatmentsReady} injury={injury} />}
-      {tab === "tests" && <TestsTab playerId={id} tests={procTests} allTests={tests} />}
-      {tab === "lesions" && <LesionsTab playerId={id} injuries={injuries} historial={player.historial_lesions} sessions={sessions} today={today} />}
+      <SwipeTabs prev={tabHref(tabIdx - 1)} next={tabHref(tabIdx + 1)}>
+        {tab === "resum" && <Resum playerId={id} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
+        {tab === "fatiga" && <FatigaTab sessions={sessions} wellness={wellness} today={today} />}
+        {tab === "wellness" && <WellnessTab playerId={id} wellness={wellness} />}
+        {tab === "sessions" && <SessionsTab playerId={id} sessions={sessions} today={today} />}
+        {tab === "tractament" && <TractamentTab playerId={id} treatments={treatments} ready={treatmentsReady} injury={injury} />}
+        {tab === "tests" && <TestsTab playerId={id} tests={procTests} allTests={tests} />}
+        {tab === "lesions" && <LesionsTab playerId={id} injuries={injuries} historial={player.historial_lesions} sessions={sessions} today={today} />}
+      </SwipeTabs>
     </>
   );
 }
@@ -319,7 +324,8 @@ function SessionsTab({ playerId, sessions, today }: { playerId: string; sessions
         <ul className="divide-y divide-border">
           {sessions.map((s) => (
             <li key={s.id}>
-              <Link href={`/jugadors/${playerId}/sessions/${s.id}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-surface-2">
+              <SwipeRow onDelete={deleteSession.bind(null, playerId, s.id)} confirm={`Eliminar la sessió del ${formatDate(s.data)}?`}>
+              <Link href={`/jugadors/${playerId}/sessions/${s.id}`} className="flex items-center gap-3 px-2 py-3 hover:bg-surface-2">
                 <div className="w-14 shrink-0 text-center">
                   <div className="text-xs text-muted">{formatDate(s.data, { month: "short" })}</div>
                   <div className="text-lg font-semibold tabular-nums">{Number(s.data.slice(8))}</div>
@@ -332,6 +338,7 @@ function SessionsTab({ playerId, sessions, today }: { playerId: string; sessions
                 </div>
                 {s.completada ? <Badge tone="ok">✓ Feta</Badge> : s.data === today ? <Badge tone="accent">Avui</Badge> : s.data > today ? <Badge>Planificada</Badge> : <Badge tone="warn">Pendent</Badge>}
               </Link>
+              </SwipeRow>
             </li>
           ))}
         </ul>
@@ -479,7 +486,8 @@ function TractamentTab({ playerId, treatments, ready, injury }: { playerId: stri
           <ul className="divide-y divide-border">
             {treatments.map((t) => (
               <li key={t.id}>
-                <Link href={`/jugadors/${playerId}/tractaments/${t.id}`} className="-mx-2 flex gap-3 rounded-lg px-2 py-3 hover:bg-surface-2">
+                <SwipeRow onDelete={deleteTreatment.bind(null, playerId, t.id)} confirm={`Eliminar el tractament del ${formatDate(t.data)}?`}>
+                <Link href={`/jugadors/${playerId}/tractaments/${t.id}`} className="flex gap-3 px-2 py-3 hover:bg-surface-2">
                   <div className="w-14 shrink-0 text-center">
                     <div className="text-xs text-muted">{formatDate(t.data, { month: "short" })}</div>
                     <div className="display text-2xl text-heading tabular-nums">{Number(t.data.slice(8))}</div>
@@ -494,6 +502,7 @@ function TractamentTab({ playerId, treatments, ready, injury }: { playerId: stri
                     {t.notes && <p className="mt-1 line-clamp-2 text-sm">{t.notes}</p>}
                   </div>
                 </Link>
+                </SwipeRow>
               </li>
             ))}
           </ul>

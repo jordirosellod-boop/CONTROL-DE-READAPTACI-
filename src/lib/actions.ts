@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
+import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 import { bool, dbError, int, list, num, str, type FormState } from "./form";
 import { todayISO } from "./calc";
 import { buscaAPlantilla } from "./plantilla";
+import { filaWellness } from "./wellness";
 
 /** Client de Supabase amb sessió verificada. Cada acció es reautoritza. */
 async function authed() {
@@ -16,6 +18,8 @@ async function authed() {
 }
 
 const playerPath = (id: string) => `/jugadors/${id}`;
+/** Afegeix el codi d'avís (?ok=...) que la pàgina de destí mostrarà com a avís flotant. */
+const ambAvis = (path: string, codi: string) => `${path}${path.includes("?") ? "&" : "?"}ok=${codi}`;
 const ok = (msg: string): FormState => ({ ok: msg, ts: Date.now() });
 
 // ---------------------------------------------------------------------------
@@ -57,6 +61,42 @@ export async function logout() {
 }
 
 // ---------------------------------------------------------------------------
+// Avisos (notificacions push)
+// ---------------------------------------------------------------------------
+
+export async function guardaSubscripcio(sub: { endpoint: string; p256dh: string; auth: string }): Promise<{ error?: string }> {
+  const supabase = await authed();
+  const { data } = await supabase.auth.getClaims();
+  const email = String(data?.claims?.email ?? "").toLowerCase();
+  if (!email || !sub.endpoint.startsWith("https://") || !sub.p256dh || !sub.auth) return { error: "Subscripció no vàlida" };
+  const { error } = await supabase.from("ra_push_subs").upsert({ endpoint: sub.endpoint, email, p256dh: sub.p256dh, auth: sub.auth });
+  return error ? { error: error.message } : {};
+}
+
+export async function esborraSubscripcio(endpoint: string): Promise<void> {
+  const supabase = await authed();
+  await supabase.from("ra_push_subs").delete().eq("endpoint", endpoint);
+}
+
+export async function provaAvis(): Promise<{ error?: string; enviats?: number }> {
+  const supabase = await authed();
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { error: "Sessió caducada" };
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/ra-avisos`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const cos = (await r.json()) as { enviats?: number; error?: string };
+    return r.ok ? { enviats: cos.enviats ?? 0 } : { error: cos.error ?? `Error ${r.status}` };
+  } catch {
+    return { error: "No s'ha pogut connectar" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Jugadors
 // ---------------------------------------------------------------------------
 
@@ -89,7 +129,7 @@ export async function savePlayer(id: string | null, _: FormState, fd: FormData):
   const { data, error } = await q;
   if (error) return { error: dbError(error) };
   revalidatePath("/");
-  redirect(playerPath(data.id));
+  redirect(ambAvis(playerPath(data.id), "jugador"));
 }
 
 export async function setPlayerArchived(id: string, arxivat: boolean): Promise<FormState> {
@@ -106,7 +146,7 @@ export async function deletePlayer(id: string): Promise<FormState> {
   const { error } = await supabase.from("ra_players").delete().eq("id", id);
   if (error) return { error: dbError(error) };
   revalidatePath("/");
-  redirect("/");
+  redirect(ambAvis("/", "jugador-eliminat"));
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +175,7 @@ export async function saveInjury(playerId: string, injuryId: string | null, _: F
   if (error) return { error: dbError(error) };
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=lesions`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=lesions`, "lesio"));
 }
 
 /** Canvia la fase del camí de retorn al joc (des de la línia de temps de la fitxa). */
@@ -154,7 +194,7 @@ export async function deleteInjury(playerId: string, injuryId: string): Promise<
   const { error } = await supabase.from("ra_injuries").delete().eq("id", injuryId);
   if (error) return { error: dbError(error) };
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=lesions`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=lesions`, "lesio-eliminada"));
 }
 
 // ---------------------------------------------------------------------------
@@ -163,27 +203,14 @@ export async function deleteInjury(playerId: string, injuryId: string): Promise<
 
 export async function saveWellness(playerId: string, _: FormState, fd: FormData): Promise<FormState> {
   const supabase = await authed();
-  const row = {
-    player_id: playerId,
-    data: str(fd, "data") ?? todayISO(),
-    son_qualitat: int(fd, "son_qualitat"),
-    son_hores: num(fd, "son_hores"),
-    fatiga: int(fd, "fatiga"),
-    estres: int(fd, "estres"),
-    estat_anim: int(fd, "estat_anim"),
-    dolor_eva: int(fd, "dolor_eva") ?? 0,
-    dolor_zones: list(fd, "dolor_zones"),
-    recuperacio: int(fd, "recuperacio"),
-    comentari: str(fd, "comentari"),
-  };
-  if ([row.son_qualitat, row.fatiga, row.estres, row.estat_anim, row.recuperacio].some((v) => v == null)) {
-    return { error: "Respon totes les escales 1–5." };
-  }
+  const res = filaWellness(playerId, fd);
+  if (res.error !== undefined) return { error: res.error };
+  const row = res.row;
   const { error } = await supabase.from("ra_wellness_entries").upsert(row, { onConflict: "player_id,data" });
   if (error) return { error: dbError(error) };
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
-  redirect(str(fd, "tornar") === "dashboard" ? "/" : `${playerPath(playerId)}?tab=wellness`);
+  redirect(ambAvis(str(fd, "tornar") === "dashboard" ? "/" : `${playerPath(playerId)}?tab=wellness`, "wellness"));
 }
 
 export async function deleteWellness(playerId: string, id: string): Promise<FormState> {
@@ -206,7 +233,7 @@ export async function saveExercise(id: string | null, _: FormState, fd: FormData
   const { error } = id ? await supabase.from("ra_exercises").update(row).eq("id", id) : await supabase.from("ra_exercises").insert(row);
   if (error) return { error: dbError(error) };
   revalidatePath("/exercicis");
-  if (id) redirect("/exercicis");
+  if (id) redirect(ambAvis("/exercicis", "exercici"));
   return ok(`«${row.nom}» afegit a la biblioteca`);
 }
 
@@ -233,7 +260,7 @@ export async function createSession(playerId: string, _: FormState, fd: FormData
     .single();
   if (error) return { error: dbError(error) };
   revalidatePath(playerPath(playerId));
-  redirect(sessionPath(playerId, data.id));
+  redirect(ambAvis(sessionPath(playerId, data.id), "sessio"));
 }
 
 export async function updateSession(playerId: string, sessionId: string, _: FormState, fd: FormData): Promise<FormState> {
@@ -262,7 +289,7 @@ export async function deleteSession(playerId: string, sessionId: string): Promis
   if (error) return { error: dbError(error) };
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=sessions`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=sessions`, "sessio-eliminada"));
 }
 
 /** Crea una còpia de la sessió per avui (mateixos exercicis i treball de camp, sense completar). */
@@ -292,7 +319,7 @@ export async function duplicateSession(playerId: string, sessionId: string): Pro
     if (error) return { error: dbError(error) };
   }
   revalidatePath(playerPath(playerId));
-  redirect(sessionPath(playerId, created.id));
+  redirect(ambAvis(sessionPath(playerId, created.id), "duplicada"));
 }
 
 function exerciseFields(fd: FormData) {
@@ -426,7 +453,7 @@ export async function saveTreatment(playerId: string, id: string | null, _: Form
     return { error: dbError(error) };
   }
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=tractament`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=tractament`, "tractament"));
 }
 
 export async function deleteTreatment(playerId: string, id: string): Promise<FormState> {
@@ -434,7 +461,7 @@ export async function deleteTreatment(playerId: string, id: string): Promise<For
   const { error } = await supabase.from("ra_treatments").delete().eq("id", id);
   if (error) return { error: dbError(error) };
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=tractament`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=tractament`, "tractament-eliminat"));
 }
 
 // ---------------------------------------------------------------------------
@@ -468,7 +495,7 @@ export async function saveTests(playerId: string, _: FormState, fd: FormData): P
   if (error) return { error: dbError(error) };
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
-  redirect(`${playerPath(playerId)}?tab=tests`);
+  redirect(ambAvis(`${playerPath(playerId)}?tab=tests`, "test"));
 }
 
 export async function deleteTest(playerId: string, id: string): Promise<FormState> {

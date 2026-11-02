@@ -11,6 +11,9 @@ export function LoginForm({ next }: { next: string }) {
     try {
       sessionStorage.removeItem("ra-benvinguda");
     } catch {}
+    // En sortir, s'esborren les pàgines desades al mòbil (són dades de salut)
+    navigator.serviceWorker?.controller?.postMessage("esborra-pagines");
+    if ("caches" in window) void caches.delete("ra-pagines");
   }, []);
   return (
     <ActionForm action={login}>

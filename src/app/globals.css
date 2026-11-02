@@ -217,3 +217,26 @@ textarea.input {
 @keyframes pagina-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .pagina-entra { animation: pagina-entra 0.28s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .pagina-entra { animation: none; } }
+
+/* Avisos flotants */
+@keyframes toast-entra { from { opacity: 0; transform: translateY(16px) scale(0.96); } to { opacity: 1; transform: none; } }
+.toast-entra { animation: toast-entra 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Mode fosc "nit de partit": llum dels focus de l'estadi a dalt */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background-image: radial-gradient(60% 40% at 12% -8%, rgb(138 166 255 / 0.16), transparent 70%), radial-gradient(60% 40% at 88% -8%, rgb(138 166 255 / 0.16), transparent 70%);
+    background-attachment: fixed;
+  }
+}
+:root[data-theme="dark"] body {
+  background-image: radial-gradient(60% 40% at 12% -8%, rgb(138 166 255 / 0.16), transparent 70%), radial-gradient(60% 40% at 88% -8%, rgb(138 166 255 / 0.16), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Finestra inferior (bottom sheet) */
+@keyframes sheet-puja { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-fons { from { opacity: 0; } to { opacity: 1; } }
+.sheet-puja { animation: sheet-puja 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sheet-fons { animation: sheet-fons 0.25s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .sheet-puja, .sheet-fons { animation: none; } }

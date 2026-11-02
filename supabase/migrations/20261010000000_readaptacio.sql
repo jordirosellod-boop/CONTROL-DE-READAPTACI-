@@ -211,3 +211,40 @@ alter table public.ra_staff add column if not exists foto_url text;
 -- Camí de retorn al joc: fase actual (1–5) i data prevista d'alta
 alter table public.ra_injuries add column if not exists fase smallint check (fase between 1 and 5);
 alter table public.ra_injuries add column if not exists data_prevista date;
+
+-- ---------------------------------------------------------------------------
+-- Avisos push
+-- ---------------------------------------------------------------------------
+-- Configuració privada (claus VAPID i token del cron). Només la llegeix la
+-- funció ra-avisos amb la clau de servei; els valors s'insereixen a mà.
+create table if not exists public.ra_config (
+  clau text primary key,
+  valor text not null
+);
+alter table public.ra_config enable row level security;
+revoke all on public.ra_config from anon, authenticated;
+grant select, insert, update, delete on public.ra_config to service_role;
+
+-- Subscripcions push de cada dispositiu del staff
+create table if not exists public.ra_push_subs (
+  endpoint text primary key,
+  email text not null check (email = lower(email)),
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.ra_push_subs enable row level security;
+drop policy if exists propi on public.ra_push_subs;
+create policy propi on public.ra_push_subs for all to authenticated
+  using ((select public.ra_is_staff()) and email = lower(auth.jwt() ->> 'email'))
+  with check ((select public.ra_is_staff()) and email = lower(auth.jwt() ->> 'email'));
+grant select, insert, update, delete on public.ra_push_subs to authenticated, service_role;
+grant select on public.ra_staff, public.ra_players, public.ra_injuries, public.ra_wellness_entries to service_role;
+
+-- Cada dia a les 07:00 UTC (8h/9h a Barcelona):
+-- create extension if not exists pg_cron; create extension if not exists pg_net;
+-- select cron.schedule('ra-avisos-diaris', '0 7 * * *', $$select net.http_post(
+--   url := 'https://goloukjoyzfvexslbxpv.supabase.co/functions/v1/ra-avisos',
+--   headers := jsonb_build_object('Content-Type','application/json','x-avisos-token',
+--     (select valor from public.ra_config where clau='avisos_token')),
+--   body := '{}'::jsonb)$$);
