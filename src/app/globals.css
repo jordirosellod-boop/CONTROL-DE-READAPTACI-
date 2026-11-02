@@ -202,3 +202,18 @@ textarea.input {
   .print-row > * { display: inline-block; width: calc(50% - 6px); vertical-align: top; margin-right: 8px; break-inside: avoid; }
   .print-row > *:last-child { margin-right: 0; }
 }
+
+/* Confeti de celebració */
+@keyframes confeti-cau {
+  0% { transform: translate3d(0, 0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate3d(var(--drift), 105vh, 0) rotate(var(--rot)); opacity: 0.9; }
+}
+@keyframes confeti-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+.confeti { animation-name: confeti-cau; animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1); animation-fill-mode: forwards; }
+.confeti-missatge { animation: confeti-pop 0.5s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .confeti { display: none; } }
+
+/* Entrada suau de cada pàgina */
+@keyframes pagina-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.pagina-entra { animation: pagina-entra 0.28s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .pagina-entra { animation: none; } }

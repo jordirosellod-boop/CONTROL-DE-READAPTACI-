@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { BodyMap } from "@/components/body-map";
+import { PlayerHero } from "@/components/player-hero";
 import { RtpTimeline } from "@/components/rtp";
 import { FatigueCharts, LoadCharts, TestChart, WellnessCharts } from "@/components/charts";
 import { ActionButton } from "@/components/forms";
-import { AcwrBadge, Avatar, Badge, Card, Meter, Empty, LinkButton, PageHeader, SemaforBadge, Stat, cx } from "@/components/ui";
+import { AcwrBadge, Badge, Card, Meter, Empty, LinkButton, SemaforBadge, Stat, cx } from "@/components/ui";
 import { deleteTest, deleteWellness, setInjuryFase } from "@/lib/actions";
 import { addDays, baselineOf, mapaDolor, rtpCompteEnrere, rtpProgress, dailyLoads, fatigueMetrics, fatigueSeries, formatDate, formatPct, wellnessTrend, loadProgression, sessionLoad, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
@@ -34,16 +35,18 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
 
   return (
     <>
-      <PageHeader
-        back={{ href: "/", label: "Panell" }}
-        title={
-          <span className="flex flex-wrap items-center gap-3">
-            <Avatar nom={player.nom} cognoms={player.cognoms} foto={player.foto_url} dorsal={player.dorsal} size="lg" />
-            {player.nom} {player.cognoms}
-            {player.arxivat && <Badge>Arxivat</Badge>}
-          </span>
-        }
-        subtitle={[
+      <Link href="/" className="mb-3 inline-block text-sm text-muted hover:text-foreground">
+        ← Panell
+      </Link>
+      <PlayerHero
+        nom={player.nom}
+        cognoms={player.cognoms}
+        foto={player.foto_url}
+        dorsal={player.dorsal}
+        arxivat={player.arxivat}
+        fase={injury ? (injury.fase ?? 1) : null}
+        setmana={injury ? treatmentWeek(injury, today).setmana : null}
+        linia={[
           player.equip,
           player.posicio ? labelOf(POSICIONS, player.posicio) : null,
           player.edat ? `${player.edat} anys` : null,
@@ -51,26 +54,24 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
         ]
           .filter(Boolean)
           .join(" · ")}
-        actions={
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-            <LinkButton href={`/jugadors/${id}/editar`} variant="ghost">
-              Editar fitxa
-            </LinkButton>
-            <LinkButton href={`/jugadors/${id}/wellness`} variant="secondary">
-              Wellness
-            </LinkButton>
-            <LinkButton href={`/jugadors/${id}/tractaments/nou`} variant="secondary">
-              + Tractament
-            </LinkButton>
-            <LinkButton href={`/jugadors/${id}/informe`} variant="secondary">
-              Informe
-            </LinkButton>
-            <LinkButton href={`/jugadors/${id}/sessions/nova`} className="max-sm:col-span-2">
-              + Sessió
-            </LinkButton>
-          </div>
-        }
       />
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+        <LinkButton href={`/jugadors/${id}/editar`} variant="ghost">
+          Editar fitxa
+        </LinkButton>
+        <LinkButton href={`/jugadors/${id}/wellness`} variant="secondary">
+          Wellness
+        </LinkButton>
+        <LinkButton href={`/jugadors/${id}/tractaments/nou`} variant="secondary">
+          + Tractament
+        </LinkButton>
+        <LinkButton href={`/jugadors/${id}/informe`} variant="secondary">
+          Informe
+        </LinkButton>
+        <LinkButton href={`/jugadors/${id}/sessions/nova`} className="max-sm:col-span-2">
+          + Sessió
+        </LinkButton>
+      </div>
 
       <nav className="-mx-4 mb-5 overflow-x-auto px-4" aria-label="Seccions">
         <div className="flex w-max gap-1 rounded-full border-2 border-accent/20 p-1">

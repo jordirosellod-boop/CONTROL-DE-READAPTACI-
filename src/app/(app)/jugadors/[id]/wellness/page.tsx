@@ -34,7 +34,7 @@ export default async function WellnessPage({ params, searchParams }: PageProps<"
             {WELLNESS_ITEMS.map((item) => (
               <fieldset key={item.key}>
                 <legend className="mb-1.5 text-sm font-medium">{item.label}</legend>
-                <ScaleInput name={item.key} min={1} max={5} defaultValue={existing?.[item.key]} low={`1 · ${item.baix}`} high={`5 · ${item.alt}`} />
+                <ScaleInput name={item.key} min={1} max={5} defaultValue={existing?.[item.key]} low={`1 · ${item.baix}`} high={`5 · ${item.alt}`} emojis={["😫", "😕", "😐", "🙂", "😄"]} />
               </fieldset>
             ))}
             <Field label="Hores de son">

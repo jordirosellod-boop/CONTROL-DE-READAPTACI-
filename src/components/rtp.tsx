@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { Confeti } from "./confeti";
 import { FASES } from "@/lib/constants";
 import { cx } from "./ui";
 
@@ -10,9 +11,11 @@ import { cx } from "./ui";
  */
 export function RtpTimeline({ fase, accions }: { fase: number; accions?: (() => Promise<unknown>)[] }) {
   const [pending, start] = useTransition();
+  const [celebra, setCelebra] = useState(false);
   const actual = FASES.find((f) => f.n === fase) ?? FASES[0];
   return (
     <div className={cx(pending && "opacity-60")}>
+      {celebra && <Confeti missatge="Retorn al joc!" onFi={() => setCelebra(false)} />}
       <ol className="relative grid grid-cols-5">
         {/* Línia de fons i línia de progrés */}
         <div aria-hidden className="absolute top-4 right-[10%] left-[10%] h-1 rounded-full bg-surface-2" />
@@ -41,7 +44,12 @@ export function RtpTimeline({ fase, accions }: { fase: number; accions?: (() => 
                 <button
                   type="button"
                   disabled={pending || ara}
-                  onClick={() => start(async () => void (await accions[i]()))}
+                  onClick={() =>
+                    start(async () => {
+                      await accions[i]();
+                      if (f.n === 5) setCelebra(true);
+                    })
+                  }
                   className="flex flex-col items-center rounded-lg p-1 active:scale-95 disabled:cursor-default"
                   aria-label={`Passar a la fase ${f.n}: ${f.nom}`}
                   aria-current={ara ? "step" : undefined}

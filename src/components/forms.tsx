@@ -96,7 +96,7 @@ export function ActionButton({
 }
 
 /** Escala de botons grans (1–5, 0–10...) amb etiquetes als extrems. */
-export function ScaleInput({ name, min, max, defaultValue, low, high, invert, required = true }: { name: string; min: number; max: number; defaultValue?: number | null; low?: string; high?: string; invert?: boolean; required?: boolean }) {
+export function ScaleInput({ name, min, max, defaultValue, low, high, invert, required = true, emojis }: { name: string; min: number; max: number; defaultValue?: number | null; low?: string; high?: string; invert?: boolean; required?: boolean; emojis?: string[] }) {
   const [value, setValue] = useState<number | null>(defaultValue ?? null);
   const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
   const tone = (v: number) => {
@@ -115,11 +115,17 @@ export function ScaleInput({ name, min, max, defaultValue, low, high, invert, re
             <input type="radio" name={name} value={v} required={required} checked={value === v} onChange={() => setValue(v)} className="peer sr-only" />
             <span
               className={cx(
-                "flex h-11 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold tabular-nums transition peer-focus-visible:outline-2 peer-focus-visible:outline-accent",
-                value === v ? cx(tone(v), "border-transparent") : "border-border bg-surface hover:bg-surface-2",
+                "flex cursor-pointer flex-col items-center justify-center rounded-lg border text-sm font-semibold tabular-nums transition active:scale-95 peer-focus-visible:outline-2 peer-focus-visible:outline-accent",
+                emojis ? "h-16 gap-0.5" : "h-11",
+                value === v ? cx(tone(v), "scale-[1.04] border-transparent shadow-md") : "border-border bg-surface hover:bg-surface-2",
               )}
             >
-              {v}
+              {emojis && (
+                <span aria-hidden className={cx("text-2xl leading-none transition", value != null && value !== v && "opacity-45 grayscale")}>
+                  {emojis[v - min]}
+                </span>
+              )}
+              <span className={emojis ? "text-xs" : undefined}>{v}</span>
             </span>
           </label>
         ))}
