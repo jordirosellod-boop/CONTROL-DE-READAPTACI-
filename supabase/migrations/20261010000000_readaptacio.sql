@@ -266,3 +266,75 @@ create policy "ra imatges llegir" on storage.objects for select to authenticated
 drop policy if exists "ra imatges esborrar" on storage.objects;
 create policy "ra imatges esborrar" on storage.objects for delete to authenticated
   using (bucket_id = 'ra-imatges' and (select public.ra_is_staff()));
+
+-- ---------------------------------------------------------------------------
+-- Enllaç personal del jugador (wellness i RPE des del seu mòbil, sense compte)
+-- ---------------------------------------------------------------------------
+-- Cada jugador pot tenir un enllaç secret. Amb ell només pot veure el seu nom
+-- i les sessions recents sense RPE, i desar el seu wellness d'avui i l'RPE.
+alter table public.ra_players add column if not exists enllac text unique check (enllac is null or length(enllac) >= 24);
+
+create or replace function public.ra_jugador_info(p_token text) returns jsonb
+language plpgsql security definer set search_path = public stable as $$
+declare
+  j public.ra_players;
+  avui date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  if p_token is null or length(p_token) < 24 then return null; end if;
+  select * into j from public.ra_players where enllac = p_token and not arxivat;
+  if not found then return null; end if;
+  return jsonb_build_object(
+    'nom', j.nom, 'cognoms', j.cognoms, 'foto_url', j.foto_url, 'dorsal', j.dorsal, 'avui', avui,
+    'wellness_avui', exists (select 1 from public.ra_wellness_entries w where w.player_id = j.id and w.data = avui),
+    'sessions', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'data', s.data, 'nom', s.nom, 'durada_min', s.durada_min) order by s.data desc, s.created_at desc)
+      from public.ra_sessions s where s.player_id = j.id and s.rpe is null and s.data between avui - 3 and avui), '[]'::jsonb)
+  );
+end $$;
+
+create or replace function public.ra_jugador_wellness(p_token text, p jsonb) returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  pid uuid;
+  avui date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  if p_token is null or length(p_token) < 24 then raise exception 'enllac'; end if;
+  select id into pid from public.ra_players where enllac = p_token and not arxivat;
+  if pid is null then raise exception 'enllac'; end if;
+  insert into public.ra_wellness_entries (player_id, data, son_qualitat, son_hores, fatiga, estres, estat_anim, recuperacio, dolor_eva, dolor_zones, comentari)
+  values (pid, avui, (p->>'son_qualitat')::smallint, nullif(p->>'son_hores','')::numeric, (p->>'fatiga')::smallint, (p->>'estres')::smallint,
+          (p->>'estat_anim')::smallint, (p->>'recuperacio')::smallint, coalesce((p->>'dolor_eva')::smallint, 0),
+          coalesce(array(select jsonb_array_elements_text(p->'dolor_zones')), '{}'), left(nullif(p->>'comentari',''), 1000))
+  on conflict (player_id, data) do update set son_qualitat = excluded.son_qualitat, son_hores = excluded.son_hores, fatiga = excluded.fatiga,
+    estres = excluded.estres, estat_anim = excluded.estat_anim, recuperacio = excluded.recuperacio, dolor_eva = excluded.dolor_eva,
+    dolor_zones = excluded.dolor_zones, comentari = excluded.comentari;
+  return 'ok';
+end $$;
+
+create or replace function public.ra_jugador_rpe(p_token text, p_session uuid, p_rpe numeric, p_durada int) returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  pid uuid;
+  avui date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  if p_token is null or length(p_token) < 24 then raise exception 'enllac'; end if;
+  select id into pid from public.ra_players where enllac = p_token and not arxivat;
+  if pid is null then raise exception 'enllac'; end if;
+  if p_rpe is null or p_rpe < 1 or p_rpe > 10 then raise exception 'rpe'; end if;
+  if p_session is null then
+    insert into public.ra_sessions (player_id, injury_id, data, nom, completada, rpe, durada_min)
+    values (pid, (select id from public.ra_injuries where player_id = pid and data_alta is null order by data_lesio desc limit 1),
+            avui, 'Entrenament (registrat pel jugador)', true, p_rpe, p_durada);
+  else
+    update public.ra_sessions set rpe = p_rpe, durada_min = coalesce(p_durada, durada_min), completada = true
+    where id = p_session and player_id = pid and data between avui - 3 and avui;
+    if not found then raise exception 'sessio'; end if;
+  end if;
+  return 'ok';
+end $$;
+
+revoke all on function public.ra_jugador_info(text) from public;
+revoke all on function public.ra_jugador_wellness(text, jsonb) from public;
+revoke all on function public.ra_jugador_rpe(text, uuid, numeric, int) from public;
+grant execute on function public.ra_jugador_info(text) to anon, authenticated;
+grant execute on function public.ra_jugador_wellness(text, jsonb) to anon, authenticated;
+grant execute on function public.ra_jugador_rpe(text, uuid, numeric, int) to anon, authenticated;

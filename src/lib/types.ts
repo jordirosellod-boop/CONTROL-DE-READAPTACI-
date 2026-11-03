@@ -21,6 +21,8 @@ export interface Player {
   foto_url: string | null;
   dorsal: number | null;
   equip: string | null;
+  /** Enllaç secret del jugador per fer el wellness i l'RPE des del seu mòbil */
+  enllac?: string | null;
   created_at: string;
 }
 
