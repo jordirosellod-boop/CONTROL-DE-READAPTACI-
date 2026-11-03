@@ -132,23 +132,12 @@ export async function savePlayer(id: string | null, _: FormState, fd: FormData):
   redirect(ambAvis(playerPath(data.id), "jugador"));
 }
 
-/** Crea (o canvia) l'enllaç personal del jugador per fer el wellness i l'RPE des del mòbil. */
-export async function generaEnllac(playerId: string): Promise<{ enllac?: string; error?: string }> {
+/** Canvia l'enllaç del formulari diari dels jugadors (l'antic deixa de funcionar). */
+export async function nouFormulari(): Promise<{ codi?: string; error?: string }> {
   const supabase = await authed();
-  const enllac = Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("base64url");
-  const { error } = await supabase.from("ra_players").update({ enllac }).eq("id", playerId);
-  if (error) return { error: dbError(error) };
-  revalidatePath(playerPath(playerId));
-  return { enllac };
-}
-
-/** Desactiva l'enllaç del jugador (el que tenia deixa de funcionar). */
-export async function treuEnllac(playerId: string): Promise<{ error?: string }> {
-  const supabase = await authed();
-  const { error } = await supabase.from("ra_players").update({ enllac: null }).eq("id", playerId);
-  if (error) return { error: dbError(error) };
-  revalidatePath(playerPath(playerId));
-  return {};
+  const { data, error } = await supabase.rpc("ra_formulari_token", { p_nou: true });
+  if (error || typeof data !== "string") return { error: dbError(error) };
+  return { codi: data };
 }
 
 export async function setPlayerArchived(id: string, arxivat: boolean): Promise<FormState> {

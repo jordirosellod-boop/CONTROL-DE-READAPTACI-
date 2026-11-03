@@ -11,7 +11,6 @@ import { addDays, baselineOf, mapaDolor, rtpCompteEnrere, rtpProgress, dailyLoad
 import { CAMES, CATEGORIES_LESIO, COSTATS_LESIO, COSTATS_TEST, POSICIONS, TECNIQUES, TIPUS_TEST, ZONES_COS, labelOf } from "@/lib/constants";
 import { activeInjury, getPlayerBundle, type SessionWithField } from "@/lib/data";
 import type { Injury, PhysicalTest, Treatment, WellnessEntry } from "@/lib/types";
-import { EnllacJugador } from "./enllac";
 
 const TABS = [
   { key: "resum", label: "Resum" },
@@ -93,7 +92,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
       </nav>
 
       <SwipeTabs prev={tabHref(tabIdx - 1)} next={tabHref(tabIdx + 1)}>
-        {tab === "resum" && <Resum playerId={id} nom={player.nom} enllac={player.enllac ?? null} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
+        {tab === "resum" && <Resum playerId={id} injury={injury} wellness={wellness} sessions={procSessions} tests={procTests} today={today} />}
         {tab === "fatiga" && <FatigaTab sessions={sessions} wellness={wellness} today={today} />}
         {tab === "wellness" && <WellnessTab playerId={id} wellness={wellness} />}
         {tab === "sessions" && <SessionsTab playerId={id} sessions={sessions} today={today} />}
@@ -107,7 +106,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
 
 // ---------------------------------------------------------------------------
 
-function Resum({ playerId, nom, enllac, injury, wellness, sessions, tests, today }: { playerId: string; nom: string; enllac: string | null; injury: Injury | null; wellness: WellnessEntry[]; sessions: SessionWithField[]; tests: PhysicalTest[]; today: string }) {
+function Resum({ playerId, injury, wellness, sessions, tests, today }: { playerId: string; injury: Injury | null; wellness: WellnessEntry[]; sessions: SessionWithField[]; tests: PhysicalTest[]; today: string }) {
   const avui = wellness.find((w) => w.data === today) ?? null;
   const week = injury ? treatmentWeek(injury, today) : null;
   const weeks = weeklyLoads(sessions);
@@ -146,8 +145,6 @@ function Resum({ playerId, nom, enllac, injury, wellness, sessions, tests, today
           {avui ? <WellnessDetail w={avui} /> : <Empty>Encara no s&apos;ha registrat el wellness d&apos;avui.</Empty>}
         </Card>
       </div>
-
-      <EnllacJugador playerId={playerId} nom={nom} enllac={enllac} />
 
       {injury && (
         <Card

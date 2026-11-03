@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/calc";
 import { CAMES, POSICIONS, labelOf } from "@/lib/constants";
 import { activeInjury, getDb } from "@/lib/data";
 import type { Injury, Player } from "@/lib/types";
+import { FormulariEquip } from "./formulari-equip";
 import { LlistaJugadors } from "./llista";
 
 export const metadata: Metadata = { title: "Jugadors" };
@@ -15,6 +16,8 @@ export default async function Jugadors({ searchParams }: PageProps<"/jugadors">)
   const { data, error } = await supabase.from("ra_players").select("*, injuries:ra_injuries(*)").eq("arxivat", showArchived).order("nom");
   if (error) throw new Error(error.message);
   const players = data as (Player & { injuries: Injury[] })[];
+  // Codi de l'enllaç del formulari diari (es crea el primer cop)
+  const { data: codiFormulari } = showArchived ? { data: null } : await supabase.rpc("ra_formulari_token");
 
   return (
     <>
@@ -29,6 +32,7 @@ export default async function Jugadors({ searchParams }: PageProps<"/jugadors">)
           </>
         }
       />
+      {typeof codiFormulari === "string" && <FormulariEquip codi={codiFormulari} />}
       {players.length === 0 ? (
         <Empty big>{showArchived ? "No hi ha jugadors arxivats." : "Encara no hi ha jugadors. Toca «+ Nou jugador» per crear-ne un."}</Empty>
       ) : (
