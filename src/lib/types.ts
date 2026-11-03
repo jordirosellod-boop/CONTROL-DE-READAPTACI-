@@ -60,6 +60,7 @@ export interface Exercise {
   nom: string;
   categoria: string | null;
   video_url: string | null;
+  imatge_url: string | null;
   descripcio: string | null;
 }
 
@@ -82,6 +83,7 @@ export interface SessionExercise {
   ordre: number;
   nom: string;
   video_url: string | null;
+  imatge_url: string | null;
   series: number | null;
   repeticions: number | null;
   temps_s: number | null;

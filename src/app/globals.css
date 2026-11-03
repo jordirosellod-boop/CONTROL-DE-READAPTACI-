@@ -240,3 +240,10 @@ textarea.input {
 .sheet-puja { animation: sheet-puja 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .sheet-fons { animation: sheet-fons 0.25s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .sheet-puja, .sheet-fons { animation: none; } }
+
+/* PDF de la sessió: graella d'exercicis en dues columnes que no es parteix entre pàgines */
+@media print {
+  .pdf-graella { display: block !important; }
+  .pdf-graella > li { display: inline-block; width: calc(50% - 6px); vertical-align: top; margin: 0 8px 10px 0; break-inside: avoid; }
+  .pdf-graella > li:nth-child(2n) { margin-right: 0; }
+}

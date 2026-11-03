@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionButton, ActionForm, ScaleInput, SubmitButton } from "@/components/forms";
+import { ImatgeInput } from "@/components/imatge-input";
 import { VideoEmbed } from "@/components/video";
-import { Card, Empty, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+import { Card, Empty, Field, Input, LinkButton, PageHeader, Select, Textarea } from "@/components/ui";
 import {
   addSessionExercise,
   deleteFieldWork,
@@ -35,6 +36,9 @@ export default async function SessioPage({ params }: PageProps<"/jugadors/[id]/s
         back={{ href: `/jugadors/${id}?tab=sessions`, label: "Sessions" }}
         actions={
           <>
+            <LinkButton href={`/jugadors/${id}/sessions/${sid}/pdf`} variant="secondary">
+              📄 PDF
+            </LinkButton>
             <ActionButton action={duplicateSession.bind(null, id, sid)} size="md">
               Duplicar per avui
             </ActionButton>
@@ -70,9 +74,10 @@ export default async function SessioPage({ params }: PageProps<"/jugadors/[id]/s
                 <Field label="…o exercici nou">
                   <Input name="nom" placeholder="Nom de l'exercici" />
                 </Field>
-                <Field label="Vídeo / enllaç" className="sm:col-span-2" hint="YouTube, Vimeo o qualsevol enllaç. Si tries de la biblioteca s'utilitza el seu vídeo.">
-                  <Input name="video_url" type="url" placeholder="https://youtu.be/..." />
-                </Field>
+                <div className="sm:col-span-2">
+                  <ImatgeInput label="Imatge (opcional)" />
+                  <p className="mt-1 text-xs text-muted">Si tries un exercici de la biblioteca i no hi poses imatge, s&apos;utilitza la seva.</p>
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="guardar_biblioteca" defaultChecked className="h-4 w-4 accent-[var(--accent)]" />
@@ -194,10 +199,16 @@ function ExerciseItem({ playerId, sessionId, e, index, total }: { playerId: stri
   return (
     <details className="group rounded-xl border border-border">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold">{index + 1}</span>
+        {e.imatge_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={e.imatge_url} alt="" className="h-11 w-11 shrink-0 rounded-lg border border-border object-cover" />
+        ) : (
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold">{index + 1}</span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">
-            {e.nom} {e.video_url && <span className="text-xs text-accent">▶ vídeo</span>}
+            {e.imatge_url && <span className="text-muted">{index + 1}. </span>}
+            {e.nom}
           </span>
           <span className="block truncate text-sm text-muted">{summary(e) || "Sense paràmetres"}</span>
         </span>
@@ -206,14 +217,10 @@ function ExerciseItem({ playerId, sessionId, e, index, total }: { playerId: stri
       <div className="space-y-4 border-t border-border p-3">
         <VideoEmbed url={e.video_url} title={e.nom} />
         <ActionForm action={updateSessionExercise.bind(null, playerId, sessionId, e.id)}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nom">
-              <Input name="nom" required defaultValue={e.nom} />
-            </Field>
-            <Field label="Vídeo / enllaç">
-              <Input name="video_url" type="url" defaultValue={e.video_url ?? ""} />
-            </Field>
-          </div>
+          <Field label="Nom">
+            <Input name="nom" required defaultValue={e.nom} />
+          </Field>
+          <ImatgeInput actual={e.imatge_url} />
           <ExerciseParams e={e} />
           <div className="flex flex-wrap items-center gap-2">
             <SubmitButton size="sm">Desar</SubmitButton>

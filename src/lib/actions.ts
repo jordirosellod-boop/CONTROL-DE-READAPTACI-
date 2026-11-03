@@ -223,13 +223,41 @@ export async function deleteWellness(playerId: string, id: string): Promise<Form
 }
 
 // ---------------------------------------------------------------------------
+// Imatges dels exercicis
+// ---------------------------------------------------------------------------
+
+type Supa = Awaited<ReturnType<typeof authed>>;
+const MAX_IMATGE = 3 * 1024 * 1024;
+
+/**
+ * Llegeix la imatge del formulari (ja reduïda al mòbil) i la puja a l'emmagatzematge.
+ * Retorna `undefined` si no hi ha canvis, `{ url: null }` si s'ha tret i `{ url }` si n'hi ha una de nova.
+ */
+async function imatgeDelFormulari(supabase: Supa, fd: FormData): Promise<{ url: string | null; error?: string } | undefined> {
+  const dades = str(fd, "imatge_data");
+  if (!dades) return bool(fd, "treure_imatge") ? { url: null } : undefined;
+  const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dades);
+  if (!m) return { url: null, error: "La imatge no és vàlida." };
+  const bytes = Buffer.from(m[2], "base64");
+  if (bytes.length > MAX_IMATGE) return { url: null, error: "La imatge és massa gran (màxim 3 MB)." };
+  const ext = m[1] === "jpeg" ? "jpg" : m[1];
+  const cami = `exercicis/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("ra-imatges").upload(cami, bytes, { contentType: `image/${m[1]}`, cacheControl: "31536000" });
+  if (error) return { url: null, error: `No s'ha pogut pujar la imatge: ${error.message}` };
+  return { url: supabase.storage.from("ra-imatges").getPublicUrl(cami).data.publicUrl };
+}
+
+// ---------------------------------------------------------------------------
 // Biblioteca d'exercicis
 // ---------------------------------------------------------------------------
 
 export async function saveExercise(id: string | null, _: FormState, fd: FormData): Promise<FormState> {
   const supabase = await authed();
-  const row = { nom: str(fd, "nom") ?? "", categoria: str(fd, "categoria"), video_url: str(fd, "video_url"), descripcio: str(fd, "descripcio") };
+  const row: Record<string, string | null> = { nom: str(fd, "nom") ?? "", categoria: str(fd, "categoria"), descripcio: str(fd, "descripcio") };
   if (!row.nom) return { error: "El nom és obligatori." };
+  const img = await imatgeDelFormulari(supabase, fd);
+  if (img?.error) return { error: img.error };
+  if (img) row.imatge_url = img.url;
   const { error } = id ? await supabase.from("ra_exercises").update(row).eq("id", id) : await supabase.from("ra_exercises").insert(row);
   if (error) return { error: dbError(error) };
   revalidatePath("/exercicis");
@@ -265,12 +293,14 @@ export async function createSession(playerId: string, _: FormState, fd: FormData
 
 export async function updateSession(playerId: string, sessionId: string, _: FormState, fd: FormData): Promise<FormState> {
   const supabase = await authed();
+  const { data: abans } = await supabase.from("ra_sessions").select("completada").eq("id", sessionId).maybeSingle();
+  const completada = bool(fd, "completada");
   const { error } = await supabase
     .from("ra_sessions")
     .update({
       data: str(fd, "data") ?? todayISO(),
       nom: str(fd, "nom"),
-      completada: bool(fd, "completada"),
+      completada,
       rpe: num(fd, "rpe"),
       durada_min: int(fd, "durada_min"),
       notes: str(fd, "notes"),
@@ -280,6 +310,8 @@ export async function updateSession(playerId: string, sessionId: string, _: Form
   revalidatePath("/");
   revalidatePath(playerPath(playerId));
   revalidatePath(sessionPath(playerId, sessionId));
+  // En acabar la sessió, es mostra directament la fitxa en PDF
+  if (completada && abans && !abans.completada) redirect(ambAvis(`${sessionPath(playerId, sessionId)}/pdf`, "sessio-acabada"));
   return ok("Sessió desada");
 }
 
@@ -338,15 +370,19 @@ export async function addSessionExercise(playerId: string, sessionId: string, _:
   const supabase = await authed();
   let exerciseId = str(fd, "exercise_id");
   let nom = str(fd, "nom");
-  let video = str(fd, "video_url");
+  let video: string | null = null;
+  const img = await imatgeDelFormulari(supabase, fd);
+  if (img?.error) return { error: img.error };
+  let imatge = img?.url ?? null;
 
   if (exerciseId) {
-    const { data: ex, error } = await supabase.from("ra_exercises").select("nom, video_url").eq("id", exerciseId).single();
+    const { data: ex, error } = await supabase.from("ra_exercises").select("nom, video_url, imatge_url").eq("id", exerciseId).single();
     if (error) return { error: dbError(error) };
     nom = nom ?? ex.nom;
-    video = video ?? ex.video_url;
+    video = ex.video_url;
+    imatge = imatge ?? ex.imatge_url;
   } else if (nom && bool(fd, "guardar_biblioteca")) {
-    const { data: ex, error } = await supabase.from("ra_exercises").insert({ nom, video_url: video }).select("id").single();
+    const { data: ex, error } = await supabase.from("ra_exercises").insert({ nom, imatge_url: imatge }).select("id").single();
     if (error) return { error: dbError(error) };
     exerciseId = ex.id;
   }
@@ -355,7 +391,7 @@ export async function addSessionExercise(playerId: string, sessionId: string, _:
   const { count } = await supabase.from("ra_session_exercises").select("id", { count: "exact", head: true }).eq("session_id", sessionId);
   const { error } = await supabase
     .from("ra_session_exercises")
-    .insert({ session_id: sessionId, exercise_id: exerciseId, nom, video_url: video, ordre: count ?? 0, ...exerciseFields(fd) });
+    .insert({ session_id: sessionId, exercise_id: exerciseId, nom, video_url: video, imatge_url: imatge, ordre: count ?? 0, ...exerciseFields(fd) });
   if (error) return { error: dbError(error) };
   revalidatePath(sessionPath(playerId, sessionId));
   return ok(`«${nom}» afegit`);
@@ -363,9 +399,11 @@ export async function addSessionExercise(playerId: string, sessionId: string, _:
 
 export async function updateSessionExercise(playerId: string, sessionId: string, id: string, _: FormState, fd: FormData): Promise<FormState> {
   const supabase = await authed();
+  const img = await imatgeDelFormulari(supabase, fd);
+  if (img?.error) return { error: img.error };
   const { error } = await supabase
     .from("ra_session_exercises")
-    .update({ nom: str(fd, "nom") ?? undefined, video_url: str(fd, "video_url"), ...exerciseFields(fd) })
+    .update({ nom: str(fd, "nom") ?? undefined, ...(img ? { imatge_url: img.url } : {}), ...exerciseFields(fd) })
     .eq("id", id);
   if (error) return { error: dbError(error) };
   revalidatePath(sessionPath(playerId, sessionId));

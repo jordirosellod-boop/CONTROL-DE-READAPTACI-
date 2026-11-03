@@ -1,4 +1,5 @@
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { ImatgeInput } from "@/components/imatge-input";
 import { Field, Input, Textarea } from "@/components/ui";
 import { saveExercise } from "@/lib/actions";
 import type { Exercise } from "@/lib/types";
@@ -19,9 +20,7 @@ export function ExerciseForm({ exercise }: { exercise?: Exercise }) {
           </datalist>
         </Field>
       </div>
-      <Field label="Vídeo / enllaç de demostració" hint="YouTube i Vimeo es veuen incrustats.">
-        <Input name="video_url" type="url" defaultValue={exercise?.video_url ?? ""} placeholder="https://youtu.be/..." />
-      </Field>
+      <ImatgeInput actual={exercise?.imatge_url} />
       <Field label="Descripció / indicacions tècniques">
         <Textarea name="descripcio" rows={2} defaultValue={exercise?.descripcio ?? ""} />
       </Field>

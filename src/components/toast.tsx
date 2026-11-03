@@ -23,6 +23,7 @@ const MISSATGES: Record<string, string> = {
   "lesio-eliminada": "Lesió eliminada",
   wellness: "Wellness desat",
   sessio: "Sessió creada",
+  "sessio-acabada": "Sessió acabada! Aquí tens el PDF",
   "sessio-eliminada": "Sessió eliminada",
   duplicada: "Sessió duplicada per avui",
   tractament: "Tractament desat",

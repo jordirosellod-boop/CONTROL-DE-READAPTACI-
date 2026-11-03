@@ -12,7 +12,7 @@ export default async function Exercicis() {
   const exercises = await getExercises();
   return (
     <>
-      <PageHeader title="Biblioteca d'exercicis" subtitle="Exercicis reutilitzables amb vídeo de demostració" />
+      <PageHeader title="Biblioteca d'exercicis" subtitle="Exercicis reutilitzables amb imatge de demostració" />
       <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
         <Card title={`Exercicis (${exercises.length})`}>
           {exercises.length === 0 ? (
@@ -21,12 +21,17 @@ export default async function Exercicis() {
             <ul className="divide-y divide-border">
               {exercises.map((e) => (
                 <li key={e.id} className="flex items-center gap-3 py-2.5">
+                  {e.imatge_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={e.imatge_url} alt="" className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover" />
+                  ) : (
+                    <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface-2 text-lg text-muted">🏋️</span>
+                  )}
                   <Link href={`/exercicis/${e.id}`} className="min-w-0 flex-1 hover:underline">
                     <span className="block truncate font-medium">{e.nom}</span>
                     {e.descripcio && <span className="block truncate text-sm text-muted">{e.descripcio}</span>}
                   </Link>
                   {e.categoria && <Badge>{e.categoria}</Badge>}
-                  {e.video_url && <Badge tone="accent">▶ Vídeo</Badge>}
                   <ActionButton action={deleteExercise.bind(null, e.id)} variant="ghost" confirm={`Eliminar «${e.nom}» de la biblioteca? Les sessions existents el conserven.`}>
                     ✕
                   </ActionButton>

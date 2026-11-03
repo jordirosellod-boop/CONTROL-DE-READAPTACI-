@@ -248,3 +248,21 @@ grant select on public.ra_staff, public.ra_players, public.ra_injuries, public.r
 --   headers := jsonb_build_object('Content-Type','application/json','x-avisos-token',
 --     (select valor from public.ra_config where clau='avisos_token')),
 --   body := '{}'::jsonb)$$);
+
+-- ---------------------------------------------------------------------------
+-- Imatges dels exercicis (substitueixen el vídeo)
+-- ---------------------------------------------------------------------------
+alter table public.ra_exercises add column if not exists imatge_url text;
+alter table public.ra_session_exercises add column if not exists imatge_url text;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('ra-imatges', 'ra-imatges', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+drop policy if exists "ra imatges pujar" on storage.objects;
+create policy "ra imatges pujar" on storage.objects for insert to authenticated
+  with check (bucket_id = 'ra-imatges' and (select public.ra_is_staff()));
+drop policy if exists "ra imatges llegir" on storage.objects;
+create policy "ra imatges llegir" on storage.objects for select to authenticated
+  using (bucket_id = 'ra-imatges' and (select public.ra_is_staff()));
+drop policy if exists "ra imatges esborrar" on storage.objects;
+create policy "ra imatges esborrar" on storage.objects for delete to authenticated
+  using (bucket_id = 'ra-imatges' and (select public.ra_is_staff()));

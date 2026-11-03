@@ -18,6 +18,7 @@ export default async function EditarExercici({ params }: PageProps<"/exercicis/[
         <Card>
           <ExerciseForm exercise={exercise} />
         </Card>
+        {/* Vídeo d'exercicis antics (ara s'hi posa una imatge) */}
         {exercise.video_url && (
           <Card title="Vídeo">
             <VideoEmbed url={exercise.video_url} title={exercise.nom} />
