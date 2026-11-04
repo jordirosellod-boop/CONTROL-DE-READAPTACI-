@@ -44,7 +44,27 @@ Deno.serve(async (req) => {
   let missatges: { title: string; body: string; url: string; tag: string }[] = [];
 
   const token = req.headers.get("x-avisos-token");
-  if (token && token === cfg.avisos_token) {
+  // deno-lint-ignore no-explicit-any
+  const cos: any = await req.json().catch(() => ({}));
+  if (token && token === cfg.avisos_token && cos?.tipus === "alerta" && typeof cos.wellness_id === "string") {
+    // Alerta immediata: un jugador ha enviat un wellness en vermell des del formulari
+    const { data: w } = await db
+      .from("ra_wellness_entries")
+      .select("player_id, dolor_eva, son_qualitat, fatiga, estres, estat_anim, recuperacio, comentari, ra_players(nom, cognoms)")
+      .eq("id", cos.wellness_id)
+      .maybeSingle();
+    if (!w) return resposta({ enviats: 0, missatges: 0 });
+    // deno-lint-ignore no-explicit-any
+    const p = (w as any).ra_players;
+    const punts = w.son_qualitat + w.fatiga + w.estres + w.estat_anim + w.recuperacio;
+    const motiu = w.dolor_eva >= 5 ? `dolor ${w.dolor_eva}/10` : `wellness ${punts}/25`;
+    missatges = [{
+      title: `🔴 ${p?.nom ?? "Jugador"} ${p?.cognoms ?? ""}`.trim(),
+      body: `Wellness en vermell (${motiu})${w.comentari ? `: «${String(w.comentari).slice(0, 80)}»` : ""}`,
+      url: `/jugadors/${w.player_id}`,
+      tag: `alerta-${w.player_id}`,
+    }];
+  } else if (token && token === cfg.avisos_token) {
     // Resum diari
     const avui = avuiMadrid();
     const dema = avuiMadrid(1);

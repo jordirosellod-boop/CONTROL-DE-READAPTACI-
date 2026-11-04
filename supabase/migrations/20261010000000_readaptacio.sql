@@ -349,3 +349,49 @@ grant execute on function public.ra_formulari_token(boolean) to authenticated;
 grant execute on function public.ra_form_info(text) to anon, authenticated;
 grant execute on function public.ra_form_wellness(text, uuid, jsonb) to anon, authenticated;
 grant execute on function public.ra_form_rpe(text, uuid, uuid, numeric, int) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Plantilles de sessió
+-- ---------------------------------------------------------------------------
+create table if not exists public.ra_plantilles (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid default auth.uid() references auth.users (id) on delete set null,
+  nom text not null check (length(trim(nom)) > 0),
+  durada_min smallint check (durada_min between 0 and 600),
+  exercicis jsonb not null default '[]'::jsonb, -- [{nom, exercise_id, imatge_url, series, repeticions, temps_s, carrega, descans_s, rpe, notes}]
+  created_at timestamptz not null default now()
+);
+alter table public.ra_plantilles enable row level security;
+drop policy if exists "equip" on public.ra_plantilles;
+create policy "equip" on public.ra_plantilles for all to authenticated using ((select public.ra_is_staff())) with check ((select public.ra_is_staff()));
+grant select, insert, update, delete on public.ra_plantilles to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Alerta immediata: wellness en vermell enviat pel jugador des del formulari
+-- ---------------------------------------------------------------------------
+create or replace function public.ra_alerta_wellness() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  vermell boolean;
+  token text;
+begin
+  -- Només per a respostes del formulari dels jugadors (sense sessió de staff)
+  if auth.uid() is not null then return new; end if;
+  vermell := new.dolor_eva >= 5
+    or least(new.son_qualitat, new.fatiga, new.estres, new.estat_anim, new.recuperacio) <= 1
+    or (new.son_qualitat + new.fatiga + new.estres + new.estat_anim + new.recuperacio) <= 12;
+  if not vermell then return new; end if;
+  select valor into token from public.ra_config where clau = 'avisos_token';
+  if token is null then return new; end if;
+  perform net.http_post(
+    url := 'https://goloukjoyzfvexslbxpv.supabase.co/functions/v1/ra-avisos',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-avisos-token', token),
+    body := jsonb_build_object('tipus', 'alerta', 'wellness_id', new.id)
+  );
+  return new;
+exception when others then
+  return new; -- l'avís mai ha d'impedir desar el wellness
+end $$;
+drop trigger if exists ra_alerta_wellness on public.ra_wellness_entries;
+create trigger ra_alerta_wellness after insert or update on public.ra_wellness_entries
+for each row execute function public.ra_alerta_wellness();

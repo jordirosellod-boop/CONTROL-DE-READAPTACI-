@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ActionButton } from "@/components/forms";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
-import { deleteExercise } from "@/lib/actions";
-import { getExercises } from "@/lib/data";
+import { deleteExercise, deletePlantilla } from "@/lib/actions";
+import { getDb, getExercises } from "@/lib/data";
 import { ExerciseForm } from "./exercise-form";
 
 export const metadata: Metadata = { title: "Exercicis" };
 
 export default async function Exercicis() {
-  const exercises = await getExercises();
+  const { supabase } = await getDb();
+  const [exercises, { data: plantilles }] = await Promise.all([getExercises(), supabase.from("ra_plantilles").select("id, nom, durada_min, exercicis").order("nom")]);
+  const llistaPlantilles = (plantilles ?? []) as { id: string; nom: string; durada_min: number | null; exercicis: { nom: string }[] }[];
   return (
     <>
       <PageHeader title="Biblioteca d'exercicis" subtitle="Exercicis reutilitzables amb imatge de demostració" />
@@ -40,9 +42,32 @@ export default async function Exercicis() {
             </ul>
           )}
         </Card>
-        <Card title="Nou exercici">
-          <ExerciseForm />
-        </Card>
+        <div className="space-y-4">
+          <Card title="Nou exercici">
+            <ExerciseForm />
+          </Card>
+          <Card title={`⭐ Plantilles de sessió (${llistaPlantilles.length})`}>
+            {llistaPlantilles.length === 0 ? (
+              <p className="text-sm text-muted">Obre una sessió amb exercicis i toca «⭐ Plantilla» per desar-la. Després la podràs aplicar a qualsevol jugador en crear una sessió nova.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {llistaPlantilles.map((p) => (
+                  <li key={p.id} className="flex items-center gap-3 py-2.5">
+                    <span className="min-w-0 flex-1">
+                      <span className="display block truncate text-heading">{p.nom}</span>
+                      <span className="block truncate text-xs text-muted">
+                        {p.exercicis.length} exercicis{p.durada_min ? ` · ${p.durada_min}'` : ""} · {p.exercicis.map((e) => e.nom).join(", ")}
+                      </span>
+                    </span>
+                    <ActionButton action={deletePlantilla.bind(null, p.id)} variant="ghost" confirm={`Eliminar la plantilla «${p.nom}»? Les sessions ja creades no canvien.`}>
+                      ✕
+                    </ActionButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
       </div>
     </>
   );

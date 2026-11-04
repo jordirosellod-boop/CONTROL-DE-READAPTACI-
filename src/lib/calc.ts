@@ -445,3 +445,67 @@ export function mapaDolor(entries: { data: string; dolor_eva: number; dolor_zone
   }
   return [...map.values()].sort((a, b) => b.maxEva - a.maxEva || b.dies - a.dies);
 }
+
+// ---------------------------------------------------------------------------
+// Progressió suggerida
+// ---------------------------------------------------------------------------
+
+export interface ParamsExercici {
+  series: number | null;
+  repeticions: number | null;
+  temps_s: number | null;
+  carrega: string | null;
+}
+
+export interface Suggeriment {
+  text: string;
+  canvis: Partial<ParamsExercici>;
+}
+
+const KG = /(\d+(?:[.,]\d+)?)\s*kg/i;
+
+/**
+ * Proposa pujar la càrrega si la darrera vegada que es va fer l'exercici va ser
+ * còmode (RPE ≤ 6) i sense dolor (EVA ≤ 2), i encara no s'ha progressat.
+ * Prioritat: pes +10 % (arrodonit a 0,5 kg) → +2 reps → +10 % de temps → +1 sèrie.
+ */
+export function suggerimentProgressio(
+  actual: ParamsExercici,
+  previ: { params: ParamsExercici; rpeSessio: number | null; rpeExercici: number | null },
+  dolorMax: number | null,
+): Suggeriment | null {
+  if (previ.rpeSessio == null || Number(previ.rpeSessio) > 6) return null;
+  if (previ.rpeExercici != null && Number(previ.rpeExercici) > 6) return null;
+  if ((dolorMax ?? 0) > 2) return null;
+  const igual = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
+  const p = previ.params;
+  if (!igual(actual.series, p.series) || !igual(actual.repeticions, p.repeticions) || !igual(actual.temps_s, p.temps_s) || !igual(actual.carrega?.trim(), p.carrega?.trim())) {
+    return null; // ja s'ha canviat respecte la darrera vegada
+  }
+  const kg = actual.carrega ? KG.exec(actual.carrega) : null;
+  if (kg && actual.carrega) {
+    const v = Number(kg[1].replace(",", "."));
+    if (v > 0) {
+      const nou = Math.max(v + 0.5, Math.round(v * 1.1 * 2) / 2);
+      const fmt = (n: number) => String(n).replace(".", ",");
+      return { text: `${fmt(v)} kg → ${fmt(nou)} kg`, canvis: { carrega: actual.carrega.replace(KG, `${fmt(nou)} kg`) } };
+    }
+  }
+  if (actual.repeticions != null && actual.repeticions > 0 && actual.repeticions < 30) {
+    return { text: `${actual.repeticions} → ${actual.repeticions + 2} reps`, canvis: { repeticions: actual.repeticions + 2 } };
+  }
+  if (actual.temps_s != null && actual.temps_s > 0) {
+    const nou = Math.max(actual.temps_s + 5, Math.round((actual.temps_s * 1.1) / 5) * 5);
+    return { text: `${actual.temps_s}" → ${nou}"`, canvis: { temps_s: nou } };
+  }
+  if (actual.series != null && actual.series > 0 && actual.series < 6) {
+    return { text: `${actual.series} → ${actual.series + 1} sèries`, canvis: { series: actual.series + 1 } };
+  }
+  return null;
+}
+
+/** Dilluns de la setmana d'una data (format AAAA-MM-DD). */
+export function dillunsDe(iso: string): string {
+  const dia = new Date(toUTC(iso)).getUTCDay(); // 0 = diumenge
+  return addDays(iso, dia === 0 ? -6 : 1 - dia);
+}

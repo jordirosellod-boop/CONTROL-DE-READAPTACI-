@@ -17,6 +17,8 @@ import {
   todayISO,
   treatmentWeek,
   videoEmbedUrl,
+  suggerimentProgressio,
+  dillunsDe,
   weeklyLoads,
   wellnessScore,
   wellnessStatus,
@@ -216,5 +218,34 @@ describe("mapa de dolor", () => {
       { zona: "genoll_e", dies: 2, maxEva: 6 },
       { zona: "lumbar", dies: 1, maxEva: 3 },
     ]);
+  });
+});
+
+describe("progressió suggerida", () => {
+  const params = (o: Partial<{ series: number | null; repeticions: number | null; temps_s: number | null; carrega: string | null }>) => ({ series: 3, repeticions: 10, temps_s: null, carrega: null, ...o });
+  it("puja el pes un 10 % (arrodonit a 0,5 kg) si va ser còmode i sense dolor", () => {
+    const a = params({ carrega: "2×8 kg" });
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: 5, rpeExercici: null }, 1)).toEqual({ text: "8 kg → 9 kg", canvis: { carrega: "2×9 kg" } });
+    const b = params({ carrega: "20 kg" });
+    expect(suggerimentProgressio(b, { params: b, rpeSessio: 6, rpeExercici: 6 }, 0)?.canvis.carrega).toBe("22 kg");
+  });
+  it("sense pes: +2 reps, després temps i sèries", () => {
+    const a = params({});
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: 4, rpeExercici: null }, null)?.canvis).toEqual({ repeticions: 12 });
+    const t = params({ repeticions: null, temps_s: 30 });
+    expect(suggerimentProgressio(t, { params: t, rpeSessio: 4, rpeExercici: null }, 0)?.text).toBe('30" → 35"');
+  });
+  it("no suggereix si va ser dur, si hi va haver dolor o si ja s'ha progressat", () => {
+    const a = params({ carrega: "10 kg" });
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: 7, rpeExercici: null }, 0)).toBeNull();
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: 5, rpeExercici: 8 }, 0)).toBeNull();
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: 5, rpeExercici: null }, 4)).toBeNull();
+    expect(suggerimentProgressio(a, { params: a, rpeSessio: null, rpeExercici: null }, 0)).toBeNull();
+    expect(suggerimentProgressio(params({ carrega: "11 kg" }), { params: a, rpeSessio: 5, rpeExercici: null }, 0)).toBeNull();
+  });
+  it("dilluns de la setmana", () => {
+    expect(dillunsDe("2026-11-04")).toBe("2026-11-02"); // dimecres
+    expect(dillunsDe("2026-11-08")).toBe("2026-11-02"); // diumenge
+    expect(dillunsDe("2026-11-02")).toBe("2026-11-02");
   });
 });

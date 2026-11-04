@@ -42,3 +42,13 @@ export function IconCompte(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+export function IconAgenda(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
+      <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+      <path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2" />
+    </Base>
+  );
+}

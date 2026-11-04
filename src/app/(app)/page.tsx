@@ -3,14 +3,20 @@ import Link from "next/link";
 import { CountUp } from "@/components/count-up";
 import { addDays, fatigueMetrics, rtpCompteEnrere, rtpProgress, formatDate, formatPct, loadProgression, summarizeTests, todayISO, treatmentWeek, weeklyLoads, wellnessScore, wellnessStatus } from "@/lib/calc";
 import { FASES, POSICIONS, labelOf } from "@/lib/constants";
-import { activeInjury, getDashboard, getPerfil } from "@/lib/data";
+import { activeInjury, getDashboard, getDb, getPerfil } from "@/lib/data";
+import { RecordatoriWellness } from "@/components/recordatori";
 import { AcwrBadge, Avatar, Badge, Card, Meter, SEMAFOR_TONE, cx, Empty, LinkButton, PageHeader, SemaforBadge } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Panell" };
 
 export default async function Dashboard() {
   const today = todayISO();
-  const [{ players, wellness, sessions, tests }, perfil] = await Promise.all([getDashboard(today, addDays(today, -6)), getPerfil()]);
+  const { supabase } = await getDb();
+  const [{ players, wellness, sessions, tests }, perfil, { data: codiFormulari }] = await Promise.all([
+    getDashboard(today, addDays(today, -6)),
+    getPerfil(),
+    supabase.rpc("ra_formulari_token"),
+  ]);
   const hora = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
   const salutacio = hora >= 6 && hora < 14 ? "Bon dia" : hora >= 14 && hora < 21 ? "Bona tarda" : "Bona nit";
 
@@ -75,6 +81,11 @@ export default async function Dashboard() {
             <SummaryTile label="Sense wellness avui" value={senseWellness.length} tone={senseWellness.length ? "warn" : undefined} />
             <SummaryTile label="Alertes" value={alertes.length} tone={alertes.length ? "danger" : undefined} />
           </div>
+
+          <RecordatoriWellness
+            codi={typeof codiFormulari === "string" ? codiFormulari : null}
+            pendents={senseWellness.map((r) => ({ id: r.player.id, nom: r.player.nom, cognoms: r.player.cognoms, foto_url: r.player.foto_url, dorsal: r.player.dorsal }))}
+          />
 
           {lesionats.length === 0 ? (
             <Empty big>Cap jugador amb lesió activa. Tothom disponible! 💪</Empty>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 import { bool, dbError, int, list, num, str, type FormState } from "./form";
-import { todayISO } from "./calc";
+import { todayISO, type ParamsExercici } from "./calc";
 import { buscaAPlantilla } from "./plantilla";
 import { filaWellness } from "./wellness";
 
@@ -295,8 +295,24 @@ export async function createSession(playerId: string, _: FormState, fd: FormData
     .select("id")
     .single();
   if (error) return { error: dbError(error) };
+  const plantillaId = str(fd, "plantilla_id");
+  if (plantillaId) {
+    const { data: pl, error: e2 } = await supabase.from("ra_plantilles").select("nom, durada_min, exercicis").eq("id", plantillaId).single();
+    if (e2 || !pl) return { error: dbError(e2) };
+    const files = ((pl.exercicis ?? []) as Record<string, unknown>[]).map((e, ordre) => ({
+      ...Object.fromEntries(CAMPS_PLANTILLA.map((k) => [k, e[k] ?? null])),
+      session_id: data.id,
+      ordre,
+    }));
+    if (files.length) {
+      const { error: e3 } = await supabase.from("ra_session_exercises").insert(files);
+      if (e3) return { error: dbError(e3) };
+    }
+    await supabase.from("ra_sessions").update({ nom: str(fd, "nom") ?? pl.nom, durada_min: pl.durada_min }).eq("id", data.id);
+  }
   revalidatePath(playerPath(playerId));
-  redirect(ambAvis(sessionPath(playerId, data.id), "sessio"));
+  revalidatePath("/agenda");
+  redirect(ambAvis(sessionPath(playerId, data.id), plantillaId ? "sessio-plantilla" : "sessio"));
 }
 
 export async function updateSession(playerId: string, sessionId: string, _: FormState, fd: FormData): Promise<FormState> {
@@ -416,6 +432,56 @@ export async function updateSessionExercise(playerId: string, sessionId: string,
   if (error) return { error: dbError(error) };
   revalidatePath(sessionPath(playerId, sessionId));
   return ok("Desat");
+}
+
+/** Aplica el suggeriment de progressió (només els camps de volum i càrrega). */
+export async function aplicaProgressio(playerId: string, sessionId: string, id: string, canvis: Partial<ParamsExercici>): Promise<FormState> {
+  const supabase = await authed();
+  const net: Partial<ParamsExercici> = {};
+  if (typeof canvis.carrega === "string") net.carrega = canvis.carrega.slice(0, 100);
+  for (const k of ["series", "repeticions", "temps_s"] as const) {
+    const v = canvis[k];
+    if (typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 86400) net[k] = v;
+  }
+  if (Object.keys(net).length === 0) return { error: "Res a aplicar." };
+  const { error } = await supabase.from("ra_session_exercises").update(net).eq("id", id).eq("session_id", sessionId);
+  if (error) return { error: dbError(error) };
+  revalidatePath(sessionPath(playerId, sessionId));
+  return ok("Progressió aplicada");
+}
+
+// ---------------------------------------------------------------------------
+// Plantilles de sessió
+// ---------------------------------------------------------------------------
+
+const CAMPS_PLANTILLA = ["nom", "exercise_id", "imatge_url", "video_url", "series", "repeticions", "temps_s", "carrega", "descans_s", "rpe", "notes"] as const;
+
+/** Desa els exercicis d'una sessió com a plantilla reutilitzable. */
+export async function desaPlantilla(sessionId: string, nom: string): Promise<{ error?: string }> {
+  const supabase = await authed();
+  const net = nom.trim().slice(0, 120);
+  if (!net) return { error: "Posa un nom a la plantilla." };
+  const { data: s, error: e1 } = await supabase
+    .from("ra_sessions")
+    .select("durada_min, session_exercises:ra_session_exercises(*)")
+    .eq("id", sessionId)
+    .order("ordre", { referencedTable: "session_exercises" })
+    .single();
+  if (e1 || !s) return { error: dbError(e1) };
+  const exercicis = ((s.session_exercises ?? []) as Record<string, unknown>[]).map((e) => Object.fromEntries(CAMPS_PLANTILLA.map((k) => [k, e[k] ?? null])));
+  if (exercicis.length === 0) return { error: "La sessió no té exercicis." };
+  const { error } = await supabase.from("ra_plantilles").insert({ nom: net, durada_min: s.durada_min, exercicis });
+  if (error) return { error: dbError(error) };
+  revalidatePath("/exercicis");
+  return {};
+}
+
+export async function deletePlantilla(id: string): Promise<FormState> {
+  const supabase = await authed();
+  const { error } = await supabase.from("ra_plantilles").delete().eq("id", id);
+  if (error) return { error: dbError(error) };
+  revalidatePath("/exercicis");
+  return ok("Plantilla eliminada");
 }
 
 export async function deleteSessionExercise(playerId: string, sessionId: string, id: string): Promise<FormState> {

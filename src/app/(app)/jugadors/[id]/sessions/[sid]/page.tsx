@@ -6,6 +6,7 @@ import { VideoEmbed } from "@/components/video";
 import { Card, Empty, Field, Input, LinkButton, PageHeader, Select, Textarea } from "@/components/ui";
 import {
   addSessionExercise,
+  aplicaProgressio,
   deleteFieldWork,
   deleteSession,
   deleteSessionExercise,
@@ -15,8 +16,9 @@ import {
   updateSession,
   updateSessionExercise,
 } from "@/lib/actions";
-import { formatDate, sessionLoad } from "@/lib/calc";
-import { getExercises, getPlayer, getSessionDetail } from "@/lib/data";
+import { formatDate, sessionLoad, suggerimentProgressio, type Suggeriment } from "@/lib/calc";
+import { getDb, getExercises, getPlayer, getSessionDetail } from "@/lib/data";
+import { DesaPlantilla } from "./desa-plantilla";
 import type { SessionExercise } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Sessió" };
@@ -27,6 +29,7 @@ export default async function SessioPage({ params }: PageProps<"/jugadors/[id]/s
   if (session.player_id !== id) notFound();
   const fw = session.field_work;
   const load = sessionLoad(session);
+  const suggeriments = session.completada ? new Map<string, Suggeriment>() : await calculaSuggeriments(id, session.data, session.session_exercises);
 
   return (
     <>
@@ -36,6 +39,7 @@ export default async function SessioPage({ params }: PageProps<"/jugadors/[id]/s
         back={{ href: `/jugadors/${id}?tab=sessions`, label: "Sessions" }}
         actions={
           <>
+            {session.session_exercises.length > 0 && <DesaPlantilla sessionId={sid} nom={session.nom ?? ""} />}
             <LinkButton href={`/jugadors/${id}/sessions/${sid}/pdf`} variant="secondary">
               📄 PDF
             </LinkButton>
@@ -58,7 +62,7 @@ export default async function SessioPage({ params }: PageProps<"/jugadors/[id]/s
               <ol className="space-y-2">
                 {session.session_exercises.map((e, i) => (
                   <li key={e.id}>
-                    <ExerciseItem playerId={id} sessionId={sid} e={e} index={i} total={session.session_exercises.length} />
+                    <ExerciseItem playerId={id} sessionId={sid} e={e} index={i} total={session.session_exercises.length} sug={suggeriments.get(e.id)} />
                   </li>
                 ))}
               </ol>
@@ -195,7 +199,40 @@ function summary(e: SessionExercise) {
   return [vol, e.carrega, e.descans_s != null && `desc. ${e.descans_s} s`, e.rpe != null && `RPE ${e.rpe}`].filter(Boolean).join(" · ");
 }
 
-function ExerciseItem({ playerId, sessionId, e, index, total }: { playerId: string; sessionId: string; e: SessionExercise; index: number; total: number }) {
+/**
+ * Per a cada exercici, busca la darrera vegada que el jugador el va fer (sessió completada)
+ * i el dolor dels dies posteriors, i proposa la progressió si va ser còmode.
+ */
+async function calculaSuggeriments(playerId: string, data: string, exercicis: SessionExercise[]) {
+  const res = new Map<string, Suggeriment>();
+  if (exercicis.length === 0) return res;
+  const { supabase } = await getDb();
+  const { data: previes } = await supabase
+    .from("ra_sessions")
+    .select("data, rpe, session_exercises:ra_session_exercises(nom, exercise_id, series, repeticions, temps_s, carrega, rpe)")
+    .eq("player_id", playerId)
+    .eq("completada", true)
+    .lt("data", data)
+    .order("data", { ascending: false })
+    .limit(30);
+  const sessions = (previes ?? []) as { data: string; rpe: number | null; session_exercises: (Pick<SessionExercise, "nom" | "exercise_id" | "series" | "repeticions" | "temps_s" | "carrega" | "rpe">)[] }[];
+  if (sessions.length === 0) return res;
+  const desde = sessions[sessions.length - 1].data;
+  const { data: well } = await supabase.from("ra_wellness_entries").select("data, dolor_eva").eq("player_id", playerId).gte("data", desde).lte("data", data);
+  const dolors = (well ?? []) as { data: string; dolor_eva: number }[];
+  for (const e of exercicis) {
+    const mateix = (x: { nom: string; exercise_id: string | null }) => (e.exercise_id && x.exercise_id === e.exercise_id) || x.nom.trim().toLowerCase() === e.nom.trim().toLowerCase();
+    const s = sessions.find((ss) => ss.session_exercises.some(mateix));
+    if (!s) continue;
+    const prev = s.session_exercises.find(mateix)!;
+    const dolor = dolors.filter((w) => w.data >= s.data && w.data <= data).reduce<number | null>((m, w) => Math.max(m ?? 0, w.dolor_eva), null);
+    const sug = suggerimentProgressio(e, { params: prev, rpeSessio: s.rpe, rpeExercici: prev.rpe }, dolor);
+    if (sug) res.set(e.id, sug);
+  }
+  return res;
+}
+
+function ExerciseItem({ playerId, sessionId, e, index, total, sug }: { playerId: string; sessionId: string; e: SessionExercise; index: number; total: number; sug?: Suggeriment }) {
   return (
     <details className="group rounded-xl border border-border">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3">
@@ -211,10 +248,17 @@ function ExerciseItem({ playerId, sessionId, e, index, total }: { playerId: stri
             {e.nom}
           </span>
           <span className="block truncate text-sm text-muted">{summary(e) || "Sense paràmetres"}</span>
+          {sug && <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-ok/12 px-2 py-0.5 text-xs font-medium text-ok">💡 Pot progressar: {sug.text}</span>}
         </span>
         <span aria-hidden className="text-muted transition group-open:rotate-180">⌄</span>
       </summary>
       <div className="space-y-4 border-t border-border p-3">
+        {sug && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-ok/10 p-3 text-sm">
+            <span className="min-w-0 flex-1">💡 La darrera vegada va ser còmode (RPE ≤ 6) i sense dolor. Proposta: <strong>{sug.text}</strong></span>
+            <ActionButton action={aplicaProgressio.bind(null, playerId, sessionId, e.id, sug.canvis)}>Aplicar</ActionButton>
+          </div>
+        )}
         <VideoEmbed url={e.video_url} title={e.nom} />
         <ActionForm action={updateSessionExercise.bind(null, playerId, sessionId, e.id)}>
           <Field label="Nom">

@@ -71,7 +71,10 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/j
         <LinkButton href={`/jugadors/${id}/informe`} variant="secondary">
           Informe
         </LinkButton>
-        <LinkButton href={`/jugadors/${id}/sessions/nova`} className="max-sm:col-span-2">
+        <LinkButton href={`/jugadors/${id}/setmana`} variant="secondary">
+          Resum setmanal
+        </LinkButton>
+        <LinkButton href={`/jugadors/${id}/sessions/nova`}>
           + Sessió
         </LinkButton>
       </div>
