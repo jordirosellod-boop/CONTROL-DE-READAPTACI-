@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Benvinguda } from "@/components/benvinguda";
 import { Suspense } from "react";
-import { BottomNav, TopNav } from "@/components/nav";
+import { BottomNav } from "@/components/nav";
+import { Capcalera } from "@/components/capcalera";
+import { formatDate, todayISO } from "@/lib/calc";
 import { PullToRefresh } from "@/components/gestures";
 import { Connexio } from "@/components/pwa";
 import { QuickActions } from "@/components/quick-actions";
@@ -10,31 +12,26 @@ import { Toaster } from "@/components/toast";
 import { logout } from "@/lib/actions";
 import { countEnReadaptacio, getDb, getPerfil, getPlayersLite } from "@/lib/data";
 
-const pill = "display inline-flex min-h-9 items-center rounded-full border-2 border-brand-fg/90 px-4 text-sm text-brand-fg hover:bg-brand-fg hover:text-brand";
+const pill = "display inline-flex min-h-9 items-center rounded-full border-2 border-white/80 px-4 text-sm text-white hover:bg-white hover:text-brand";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { email } = await getDb();
   const [perfil, enReadaptacio, jugadors] = await Promise.all([getPerfil(), countEnReadaptacio(), getPlayersLite()]);
   return (
     <div className="flex min-h-dvh flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-0 print:pb-0">
-      <header className="stripes sticky top-0 z-20 print:hidden bg-brand pt-[env(safe-area-inset-top)] text-brand-fg shadow-[0_2px_12px_rgba(11,27,77,0.25)]">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-          {/* L'escut sobresurt de la barra, com a la web del club */}
-          <Link href="/" className="relative h-16 w-14 shrink-0 sm:w-20" aria-label="Inici">
-            <Image src="/escut.png" alt="Escut CE Europa" width={80} height={80} priority className="absolute top-2 left-0 h-14 w-14 object-contain drop-shadow-md sm:h-[76px] sm:w-[76px]" />
-          </Link>
-          <Link href="/" className="leading-none sm:hidden">
-            <span className="display block text-[11px] text-[#e0b36e]">CE Europa</span>
-            <span className="display block text-xl">Readaptació</span>
-          </Link>
-          <TopNav />
-          <form action={logout} className="ml-auto hidden sm:block">
+      <Capcalera
+        nom={perfil.nom}
+        foto={perfil.foto}
+        email={email}
+        data={formatDate(todayISO(), { weekday: "long", day: "numeric", month: "short" })}
+        sortir={
+          <form action={logout}>
             <button className={pill} title={email}>
               Sortir
             </button>
           </form>
-        </nav>
-      </header>
+        }
+      />
       <Connexio />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-7 pb-10 sm:pt-9 print:max-w-none print:p-0">{children}</main>
       <footer className="stripes hidden bg-brand text-brand-fg sm:block print:hidden">
